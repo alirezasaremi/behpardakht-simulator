@@ -30,7 +30,13 @@ Goal 3 implements only source table-1 field extraction. Table marks `mobileNo`, 
 
 Source table 11 labels `41` “duplicate request number,” while Pay notes say duplicate `orderId` returns an error. v1.39 never explicitly connects `41` to duplicate `bpPayRequest` / `orderId`; provider result code and non-success result grammar for this condition are `UNSPECIFIED`. Goal 3 preserves terminal-scoped uniqueness internally and returns a `SIMULATOR_INTERNAL` HTTP 409 SOAP Fault for duplicates. No Goal 3 condition maps to a Behpardakht response code beyond documented success `0,RefId`.
 
-## Verify, Settle, Inquiry, Reversal, VerifySettle
+## Verify (`bpVerifyRequest`)
+
+`bpVerifyRequest` returns a string containing a response code (printed page 21). Its exact source fields are `terminalId`, `userName`, `userPassword`, `orderId`, `saleOrderId`, and `saleReferenceId`; types are respectively `long`, `string`, `string`, `long`, `long`, and `long`.
+
+Verify `orderId` is verification-request number, does not need to be unique, and may equal `saleOrderId`. `saleOrderId` is purchase-request number: original Pay `orderId`; `saleReferenceId` is purchase transaction reference. Callback `ResCode` `0` requires Verify; nonzero callback `ResCode` must not be conflated with Verify response. Source retry wording names success, previously verified, or previously reversed. Source table 11 explicitly defines `43` as prior successful Verify; it defines `48` as reversed, but Goal 5 has no completed-reversal state and does not return it. See [VERIFY.md](VERIFY.md).
+
+## Settle, Inquiry, Reversal, VerifySettle
 
 Each source table gives same field structure. Return value is a response-code string, except source describes `0` for `bpSettleRequest` as successful receipt of settlement request.
 

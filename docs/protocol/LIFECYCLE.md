@@ -18,7 +18,7 @@ Merchant may use `bpVerifySettleRequest` for combined Verify/Settle, or Verify t
 - `bpReversalRequest` must follow `bpVerifyRequest`; latest reverse request time is 3 hours after Verify. Source says debited funds return by end of same day if settlement request was not sent.
 - Default automatic settlement: after 3 hours (180 minutes), for successful transactions without reversal or settlement request, Behpardakht sends settlement on merchant's behalf.
 - When redirect POST includes `SettleTime` with any string value alongside `RefId`, source says settlement time changes to 6 hours (360 minutes).
-- Retrying Verify after nonzero callback `ResCode` is described until response indicates success, previously verified, or previously reversed. VerifySettle also adds previously settled. Catalogue codes include `43` already Verify requested, `45` settled, and `48` reversed.
+- Retrying Verify after nonzero callback `ResCode` is described until response indicates success, previously verified, or previously reversed. VerifySettle also adds previously settled. Catalogue codes include `43` already Verify requested, `45` settled, and `48` reversed. Callback `ResCode` is not Verify result.
 
 ## Simulator decisions
 
@@ -26,7 +26,9 @@ Goal 4 adds local StartPay lookup and fake user-selected Sale results. `SUCCESS`
 
 Callback dispatch appends attempted plus delivered/failed diagnostic events. Delivery failure does not change `SUCCEEDED` or `NON_SUCCESS`, create a provider ResCode, retry, verify, settle, or reverse anything.
 
-Goal 2 adds no protocol endpoint or timer. Its `SIMULATOR_INTERNAL` model records Sale, verification, settlement, and reversal request facts with constrained transitions and append-only events. `VERIFY_ATTEMPTED` represents a future Verify invocation with unresolved outcome; repeated Verify attempts append more `VERIFY_ATTEMPTED` events until a confirmed result, reversal request, or settlement request. `VERIFIED` represents a later confirmed result. Inquiry adds a diagnostic event without changing lifecycle state.
+Goal 5 implements local SOAP Verify for a correlated successful Sale. It records `VERIFY_ATTEMPTED`, then `VERIFICATION_CONFIRMED`, yields `VERIFIED`, preserves `SUCCEEDED` Sale and `NOT_REQUESTED` settlement, and returns provider code `0`. A later Verify returns `43` without a new event. Complete correlation is `{ terminalId, saleOrderId, saleReferenceId }`; local Verify `orderId` is neither lookup key nor unique.
+
+Goal 2 adds no timer. Its `SIMULATOR_INTERNAL` model records Sale, verification, settlement, and reversal request facts with constrained transitions and append-only events. `VERIFY_ATTEMPTED` represents a future Verify invocation with unresolved outcome; repeated Verify attempts append more `VERIFY_ATTEMPTED` events until a confirmed result, reversal request, or settlement request. `VERIFIED` represents a later confirmed result. Inquiry adds a diagnostic event without changing lifecycle state.
 
 Nonzero callback `ResCode` is recorded as `NON_SUCCESS`, not a final failed-payment assertion: v1.39 documents another Verify call for nonzero callback results. Combined VerifySettle remains limited to the documented successful-Sale path.
 

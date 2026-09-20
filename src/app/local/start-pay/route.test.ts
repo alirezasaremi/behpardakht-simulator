@@ -15,6 +15,17 @@ function payRequest(orderId: string, amount: string, callbackUrl: string): Reque
   });
 }
 
+function verifyRequest(saleOrderId: string, saleReferenceId: string): Request {
+  return new Request("http://local.test/api/soap", {
+    method: "POST",
+    headers: { "content-type": "text/xml; charset=utf-8" },
+    body: `<?xml version="1.0"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><bpVerifyRequest>
+      <terminalId>9007199254740993</terminalId><userName>local</userName><userPassword>fake-password</userPassword>
+      <orderId>${saleOrderId}</orderId><saleOrderId>${saleOrderId}</saleOrderId><saleReferenceId>${saleReferenceId}</saleReferenceId>
+    </bpVerifyRequest></soap:Body></soap:Envelope>`,
+  });
+}
+
 describe("local StartPay contract", () => {
   it("POSTs a known RefId into payment page and completes from stored transaction data", async () => {
     const soap = await localSimulator.soap.handle(
@@ -52,6 +63,14 @@ describe("local StartPay contract", () => {
       saleState: "SUCCEEDED",
     });
     expect(transaction?.events.at(-1)).toMatchObject({ type: "CALLBACK_DISPATCH_FAILED", reason: "DESTINATION_REJECTED" });
+
+    const verify = await localSimulator.soap.handle(verifyRequest("9007199254740995", transaction?.saleReferenceId?.toString() ?? ""));
+    expect(verify.status).toBe(200);
+    expect(await verify.text()).toContain("<bpVerifyRequestResult>0</bpVerifyRequestResult>");
+    expect(localSimulator.repository.getByRefId(refId ?? "")).toMatchObject({
+      verificationState: "VERIFIED",
+      settlementState: "NOT_REQUESTED",
+    });
   });
 
   it("fails an unknown RefId without exposing a payment page", async () => {

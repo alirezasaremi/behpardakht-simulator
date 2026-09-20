@@ -5,6 +5,7 @@ import {
   SequenceIdentifierGenerator,
 } from "@/server/transactions";
 import type { RefIdGenerator } from "@/server/protocol";
+import { recordSaleSucceeded } from "@/server/transactions";
 import { MAX_SOAP_REQUEST_BYTES } from "./xml";
 import { createLocalSoapService } from "./service";
 
@@ -62,6 +63,21 @@ function payXml(overrides: Record<string, string> = {}): string {
     </pay:bpPayRequest>
   </soapenv:Body>
 </soapenv:Envelope>`;
+}
+
+function verifyXml(overrides: Record<string, string> = {}): string {
+  const fields = {
+    terminalId: "9007199254740993",
+    userName: "local-merchant",
+    userPassword: "fake-test-password",
+    orderId: "9007199254740995",
+    saleOrderId: "9007199254740995",
+    saleReferenceId: "9007199254740999",
+    ...overrides,
+  };
+  return `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><bpVerifyRequest>${Object.entries(fields)
+    .map(([name, value]) => `<${name}>${value}</${name}>`)
+    .join("")}</bpVerifyRequest></soap:Body></soap:Envelope>`;
 }
 
 describe("LocalSoapService", () => {
@@ -133,5 +149,68 @@ describe("LocalSoapService", () => {
 
     expect(tooLong.status).toBe(400);
     expect(exponent.status).toBe(400);
+  });
+
+  it("runs Pay-to-Sale-to-Verify through local SOAP boundary without settling", async () => {
+    const { repository, service } = createService();
+    await service.handle(request(payXml()));
+    const paid = repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) {
+      throw new Error("Pay fixture did not create transaction.");
+    }
+    const sold = repository.save(
+      recordSaleSucceeded(
+        paid,
+        { refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999") },
+        new ManualClock(new Date("2026-01-01T00:00:01.000Z")),
+        new SequenceIdentifierGenerator(),
+      ),
+    );
+
+    const verified = await service.handle(request(verifyXml()));
+    const verifiedBody = await verified.text();
+    const repeated = await service.handle(request(verifyXml()));
+
+    expect(verified.status).toBe(200);
+    expect(verifiedBody).toContain("<bpVerifyRequestResult>0</bpVerifyRequestResult>");
+    // PROTOCOL: table 11 code 43 means prior successful Verify.
+    expect(await repeated.text()).toContain("<bpVerifyRequestResult>43</bpVerifyRequestResult>");
+    expect(repository.getById(sold.id)).toMatchObject({
+      saleState: "SUCCEEDED",
+      verificationState: "VERIFIED",
+      settlementState: "NOT_REQUESTED",
+    });
+  });
+
+  it("keeps malformed or non-correlating Verify requests local faults with no mutation", async () => {
+    const { repository, service } = createService();
+    await service.handle(request(payXml()));
+    const paid = repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) {
+      throw new Error("Pay fixture did not create transaction.");
+    }
+    const clock = new ManualClock(new Date("2026-01-01T00:00:01.000Z"));
+    const identifiers = new SequenceIdentifierGenerator();
+    const sold = repository.save(
+      recordSaleSucceeded(
+        paid,
+        { refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999") },
+        clock,
+        identifiers,
+      ),
+    );
+
+    const malformed = await service.handle(request(verifyXml({ saleOrderId: "not-a-long" })));
+    const mismatchedReference = await service.handle(request(verifyXml({ saleReferenceId: "1" })));
+    const mismatchedOrder = await service.handle(request(verifyXml({ saleOrderId: "1" })));
+    const mismatchedTerminal = await service.handle(request(verifyXml({ terminalId: "1" })));
+
+    for (const response of [malformed, mismatchedReference, mismatchedOrder, mismatchedTerminal]) {
+      const body = await response.text();
+      expect(response.status).toBe(400);
+      expect(body).toContain("<soap:Fault>");
+      expect(body).not.toContain("fake-test-password");
+    }
+    expect(repository.getById(sold.id)).toEqual(sold);
   });
 });

@@ -13,6 +13,8 @@ Before a change, inspect existing code and `AGENTS.md`. Derive protocol only fro
 
 Local SOAP service is `POST http://localhost:3000/api/soap`. It accepts only [SOAP_COMPATIBILITY.md](protocol/SOAP_COMPATIBILITY.md), not a production Behpardakht endpoint. Use fake local merchant values only.
 
+After a successful Sale/callback, call `bpVerifyRequest` at same endpoint. Use exact source table-2 fields; `saleOrderId` is original Pay `orderId`, while Verify `orderId` is non-unique and may equal it. Keep callback `ResCode` separate from Verify response code. See [VERIFY.md](protocol/VERIFY.md); password is compatibility input only and is never persisted/logged.
+
 After a successful Pay SOAP result, submit a browser form with its exact case-sensitive RefId to `POST http://localhost:3000/local/start-pay`. The local endpoint accepts URL-encoded `RefId` only, then shows fake developer payment controls. It accepts no amount, order, terminal, callback, or Sale identifier from browser action input.
 
 Callback delivery is disabled unless `SIMULATOR_CALLBACK_ALLOWED_ORIGINS` contains an exact allowed `http:` or `https:` origin. Example for a controlled receiver: `SIMULATOR_CALLBACK_ALLOWED_ORIGINS=http://127.0.0.1:4010 npm run dev`. Explicitly configure localhost or `127.0.0.1`; neither is implicitly trusted. The local dispatcher rejects credentials in URLs, redirects, and destinations outside this allowlist.

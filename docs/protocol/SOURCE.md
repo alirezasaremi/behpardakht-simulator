@@ -30,6 +30,11 @@ This inventory does not make every method an MVP. See `ROADMAP.md` for simulator
 - Printed pages 21 and 32: successful Sale needs Verify/VerifySettle within 20 minutes or source describes automatic reversal.
 - Printed pages 32-33: after banking operation, gateway POSTs callback fields and merchant must correlate `RefId` and `SaleOrderId` to Pay before Verify.
 
+## Goal 5 source locations (`PROTOCOL`)
+
+- Printed page 21: `bpVerifyRequest` purpose, response-code-string return, exact table-2 parameters/types, callback `ResCode` `0` relationship, nonzero-callback retry wording, non-unique Verify `orderId`, and 20-minute automatic-reversal statement.
+- Printed pages 36-37, table 11: `0` completed successfully, `43` prior Verify succeeded, and `48` reversed transaction meaning. Page 21 names previously reversed but does not connect a local completed-reversal implementation to response `48`.
+
 ## Reading rules
 
 Preserve identifiers, case, documented types, response codes, and short required values. Summaries do not establish missing namespaces, WSDL schemas, SOAPAction values, envelopes, serialization, or transport wire details. Record uncertainty rather than extrapolating.

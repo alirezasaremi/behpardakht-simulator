@@ -8,6 +8,8 @@ Goal 3 Vitest coverage adds `bpPayRequest` application and SOAP/HTTP-boundary te
 
 Goal 4 adds unit and contract tests for bounded local StartPay forms, RefId lookup, success/non-success Sale transitions, deterministic bigint SaleReferenceIds, callback payload names/correlation/FinalAmount, fake masked PAN, exact-origin allowlisting, protocol/credentials rejection, redirect refusal, timeout, bounded response consumption, callback event history, duplicate action rejection, and transport-failure separation from Sale. The route contract proves original stored amount/order/callback values are used. Playwright runs `Pay -> local StartPay POST -> fake success -> completion` and asserts page warnings plus zero credential input controls. Callback transport is separately controlled/mocked; no public host is contacted.
 
+Goal 5 adds unit and local SOAP contract coverage for table-2 Verify parsing, bigint precision, successful `Pay -> Sale -> Verify`, complete terminal/sale-order/sale-reference correlation, non-unique Verify `orderId`, `0` success, `43` already verified, ordered immutable events, no settlement/callback, password omission, malformed input, and rejection with no partial mutation. Expected provider codes are cited in [VERIFY.md](protocol/VERIFY.md); unknown/mismatching correlation remains a local SOAP fault.
+
 ```bash
 npm run lint
 npm run typecheck

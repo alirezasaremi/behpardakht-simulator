@@ -69,4 +69,6 @@
 | 995 | Bank-card ownership by customer not verified. |
 | 997 | Destination system inactive. |
 
-No simulator response behavior is implemented in Goal 1. Any later mapping must preserve code/meaning and mark non-source triggering mechanics `SIMULATOR_INTERNAL` or `SIMULATOR_SCENARIO`.
+## Goal 5 Verify response audit
+
+Only `0` and `43` are returned by `bpVerifyRequest`. `0` is returned after Goal 5 confirms a fully correlated successful Sale; `43` is returned for same transaction after confirmed Verify. Both mappings have direct basis in printed pages 21, 36, and 37; state mutation is `SIMULATOR_INTERNAL`. `48` is not returned because current model has no completed reversal; `42` is not returned because its explicit matching-Sale explanation is refund-specific. All malformed, unsupported, mismatched, unknown, and non-modeled Verify cases remain local SOAP faults. See [VERIFY.md](VERIFY.md).

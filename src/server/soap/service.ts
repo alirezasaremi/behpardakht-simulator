@@ -2,12 +2,15 @@ import { SystemClock, RandomIdentifierGenerator, InMemoryTransactionRepository }
 import {
   BpPayRequestApplicationError,
   BpPayRequestHandler,
+  BpVerifyRequestApplicationError,
+  BpVerifyRequestHandler,
   RandomRefIdGenerator,
   type BpPayRequestHandlerDependencies,
 } from "@/server/protocol";
 import { SoapInputError } from "./errors";
 import { extractBpPayRequest } from "./pay-request";
-import { serializePayResponse, serializeSoapFault } from "./response";
+import { serializePayResponse, serializeSoapFault, serializeVerifyResponse } from "./response";
+import { extractBpVerifyRequest } from "./verify-request";
 import { MAX_SOAP_REQUEST_BYTES, parseLocalSoapOperation } from "./xml";
 
 export type LocalSoapServiceDependencies = BpPayRequestHandlerDependencies;
@@ -16,24 +19,38 @@ export type LocalSoapServiceDependencies = BpPayRequestHandlerDependencies;
 export class LocalSoapService {
   readonly repository;
   private readonly payRequests: BpPayRequestHandler;
+  private readonly verifyRequests: BpVerifyRequestHandler;
 
   constructor(dependencies: LocalSoapServiceDependencies) {
     this.repository = dependencies.repository;
     this.payRequests = new BpPayRequestHandler(dependencies);
+    this.verifyRequests = new BpVerifyRequestHandler(dependencies);
   }
 
   async handle(request: Request): Promise<Response> {
     try {
       const body = await readBoundedRequestBody(request, MAX_SOAP_REQUEST_BYTES);
       const operation = parseLocalSoapOperation(body);
-      const input = extractBpPayRequest(operation);
-      const result = this.payRequests.execute(input);
-      return xmlResponse(serializePayResponse(result.result), 200);
+      if (operation.name === "bpPayRequest") {
+        const result = this.payRequests.execute(extractBpPayRequest(operation));
+        return xmlResponse(serializePayResponse(result.result), 200);
+      }
+      if (operation.name === "bpVerifyRequest") {
+        const result = this.verifyRequests.execute(extractBpVerifyRequest(operation));
+        return xmlResponse(serializeVerifyResponse(result.result), 200);
+      }
+      throw new SoapInputError("UNSUPPORTED_OPERATION", "Unsupported SOAP operation.");
     } catch (error) {
       if (error instanceof BpPayRequestApplicationError && error.code === "DUPLICATE_PAY_ORDER_ID") {
         return xmlResponse(
           serializeSoapFault("Client.DuplicatePayOrderId", "Duplicate Pay orderId is not accepted by local simulator."),
           409,
+        );
+      }
+      if (error instanceof BpVerifyRequestApplicationError) {
+        return xmlResponse(
+          serializeSoapFault("Client.InvalidVerifyRequest", "Verify request cannot be completed by local simulator."),
+          400,
         );
       }
       if (error instanceof SoapInputError) {

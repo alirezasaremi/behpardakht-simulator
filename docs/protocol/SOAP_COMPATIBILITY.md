@@ -18,15 +18,15 @@ PDF does not supply WSDL schema contents, XML namespaces, SOAP version/envelope 
 
 - Endpoint: `POST /api/soap`; never production host or proxy.
 - SOAP version: SOAP 1.1 envelope namespace `http://schemas.xmlsoap.org/soap/envelope/`.
-- Envelope: one SOAP `Body`, one direct operation element. Optional operation namespace/prefix is ignored; local element name must be exactly `bpPayRequest`.
-- Supported operation: only `bpPayRequest`.
-- Response: SOAP 1.1 envelope containing `bpPayRequestResponse` / `bpPayRequestResult`; successful text is documented `0,RefId`.
+- Envelope: one SOAP `Body`, one direct operation element. Optional operation namespace/prefix is ignored; local element name must be exactly `bpPayRequest` or `bpVerifyRequest`.
+- Supported operations: only `bpPayRequest` and `bpVerifyRequest`.
+- Response: SOAP 1.1 envelope containing corresponding `bpPayRequestResponse` / `bpPayRequestResult` or `bpVerifyRequestResponse` / `bpVerifyRequestResult`. Pay success is documented `0,RefId`; Verify returned codes are audited in [VERIFY.md](VERIFY.md).
 - Faults: malformed/unsupported/structurally invalid input returns HTTP 400 local SOAP `Fault`, not Behpardakht `ResCode`. Internal failures return generic HTTP 500 local SOAP `Fault`.
 - Duplicate `(terminalId, orderId)`: terminal-scoped uniqueness is preserved. Local service returns HTTP 409 SOAP Fault `Client.DuplicatePayOrderId`; this is not Behpardakht `41` or any provider response code.
 - No SOAPAction requirement is enforced because v1.39 does not define one.
 - Decimal integer text is converted directly to `bigint`; it must use ASCII digits only. This avoids JavaScript number precision loss. No production long lexical/range claim is made.
 - Local RefIds use opaque `local_` plus random UUID-derived token. They are uniqueness-checked against running repository state, case-sensitive, transport-safe, non-secret, and injectable in tests. Their format is not provider format.
-- Merchant authentication/configuration, Mana brokerage category, and registered-domain lookup are not implemented. Goal 4 payment-page/callback behavior is separate in `START_PAY.md` and `CALLBACK.md`.
+- Merchant authentication/configuration, Mana brokerage category, and registered-domain lookup are not implemented. Verify user credentials are structural compatibility input only and never persist/log. Goal 4 payment-page/callback behavior is separate in `START_PAY.md` and `CALLBACK.md`.
 
 ## Input validation and XML safety
 
@@ -62,4 +62,4 @@ curl --request POST http://localhost:3000/api/soap \
 XML
 ```
 
-Response contains local SOAP wrapper and `bpPayRequestResult` text `0,<local RefId>`. Goal 4 can then POST that RefId to local `/local/start-pay`; it has fake outcomes/callback only. Verify, Settle, Inquiry, Reversal, refund, and scenario engine remain unimplemented.
+Response contains local SOAP wrapper and `bpPayRequestResult` text `0,<local RefId>`. Goal 4 can then POST that RefId to local `/local/start-pay`; it has fake outcomes/callback only. After successful Sale, Goal 5 accepts `bpVerifyRequest` table-2 fields and returns `0` or `43` under its audited conditions. Settle, Inquiry, Reversal, refund, VerifySettle, and scenario engine remain unimplemented.

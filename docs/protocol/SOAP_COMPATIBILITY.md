@@ -26,7 +26,7 @@ PDF does not supply WSDL schema contents, XML namespaces, SOAP version/envelope 
 - No SOAPAction requirement is enforced because v1.39 does not define one.
 - Decimal integer text is converted directly to `bigint`; it must use ASCII digits only. This avoids JavaScript number precision loss. No production long lexical/range claim is made.
 - Local RefIds use opaque `local_` plus random UUID-derived token. They are uniqueness-checked against running repository state, case-sensitive, transport-safe, non-secret, and injectable in tests. Their format is not provider format.
-- Merchant authentication/configuration, Mana brokerage category, registered-domain lookup, payment-page redirect, and callback execution are not implemented.
+- Merchant authentication/configuration, Mana brokerage category, and registered-domain lookup are not implemented. Goal 4 payment-page/callback behavior is separate in `START_PAY.md` and `CALLBACK.md`.
 
 ## Input validation and XML safety
 
@@ -62,4 +62,4 @@ curl --request POST http://localhost:3000/api/soap \
 XML
 ```
 
-Response contains local SOAP wrapper and `bpPayRequestResult` text `0,<local RefId>`. No redirect, payment page, card entry, callback, Verify, Settle, Inquiry, Reversal, refund, or scenario behavior exists in Goal 3.
+Response contains local SOAP wrapper and `bpPayRequestResult` text `0,<local RefId>`. Goal 4 can then POST that RefId to local `/local/start-pay`; it has fake outcomes/callback only. Verify, Settle, Inquiry, Reversal, refund, and scenario engine remain unimplemented.

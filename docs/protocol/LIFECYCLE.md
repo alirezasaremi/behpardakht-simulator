@@ -22,6 +22,10 @@ Merchant may use `bpVerifySettleRequest` for combined Verify/Settle, or Verify t
 
 ## Simulator decisions
 
+Goal 4 adds local StartPay lookup and fake user-selected Sale results. `SUCCESS` records documented callback `ResCode` `0`; Goal 4's only `NON_SUCCESS` choice records documented table-11 code `17` (user/cardholder cancellation). Choosing this single outcome is `SIMULATOR_SCENARIO`, not a model of provider failure mechanics. `PROTOCOL`: both paths use original Pay `orderId` as callback `SaleOrderId`; generated numeric `SaleReferenceId` is simulator-only.
+
+Callback dispatch appends attempted plus delivered/failed diagnostic events. Delivery failure does not change `SUCCEEDED` or `NON_SUCCESS`, create a provider ResCode, retry, verify, settle, or reverse anything.
+
 Goal 2 adds no protocol endpoint or timer. Its `SIMULATOR_INTERNAL` model records Sale, verification, settlement, and reversal request facts with constrained transitions and append-only events. `VERIFY_ATTEMPTED` represents a future Verify invocation with unresolved outcome; repeated Verify attempts append more `VERIFY_ATTEMPTED` events until a confirmed result, reversal request, or settlement request. `VERIFIED` represents a later confirmed result. Inquiry adds a diagnostic event without changing lifecycle state.
 
 Nonzero callback `ResCode` is recorded as `NON_SUCCESS`, not a final failed-payment assertion: v1.39 documents another Verify call for nonzero callback results. Combined VerifySettle remains limited to the documented successful-Sale path.

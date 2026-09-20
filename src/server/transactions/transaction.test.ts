@@ -139,12 +139,24 @@ describe("transaction lifecycle", () => {
     const { clock, identifiers, transaction } = fixture();
     const withRefId = assignRefId(transaction, "Ref-A", clock, identifiers);
     clock.advanceBy(1_000);
-    const nonSuccess = recordSaleNonSuccess(withRefId, { refId: "Ref-A", resCode: "17" }, clock, identifiers);
+    const nonSuccess = recordSaleNonSuccess(
+      withRefId,
+      { refId: "Ref-A", resCode: "17", saleOrderId: BigInt(20), saleReferenceId: BigInt(99) },
+      clock,
+      identifiers,
+    );
 
     expect(nonSuccess.lifecycleState).toBe("SALE_NON_SUCCESS");
     expect(nonSuccess.events.at(-1)).toEqual(expect.objectContaining({ type: "SALE_NON_SUCCESS", resCode: "17" }));
     expect(recordVerifyAttempted(nonSuccess, clock, identifiers).lifecycleState).toBe("VERIFY_PENDING");
-    expect(() => recordSaleNonSuccess(nonSuccess, { refId: "Ref-A", resCode: "17" }, clock, identifiers)).toThrow(
+    expect(() =>
+      recordSaleNonSuccess(
+        nonSuccess,
+        { refId: "Ref-A", resCode: "17", saleOrderId: BigInt(20), saleReferenceId: BigInt(99) },
+        clock,
+        identifiers,
+      ),
+    ).toThrow(
       TransactionDomainError,
     );
   });

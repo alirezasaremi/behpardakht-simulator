@@ -1,10 +1,8 @@
-import { createLocalSoapService } from "@/server/soap";
+import { localSimulator } from "@/server/local-simulator";
 
 export const runtime = "nodejs";
 
 /** SIMULATOR_INTERNAL singleton local endpoint. No production Behpardakht host is used. */
-const service = createLocalSoapService();
-
 export async function POST(request: Request): Promise<Response> {
-  return service.handle(request);
+  return localSimulator.soap.handle(request);
 }

@@ -23,6 +23,13 @@ Supplied PDF names WSDL URLs but does not include fetched schema or specify SOAP
 
 This inventory does not make every method an MVP. See `ROADMAP.md` for simulator scope (`SIMULATOR_INTERNAL`).
 
+## Goal 4 source locations (`PROTOCOL`)
+
+- Printed page 14: successful Pay sends case-sensitive generated `RefId` by POST; test/operational StartPay URLs are printed.
+- Printed pages 18-20: illustrated StartPay fields `MobileNo`, `EncPan`, `HiddenMode`, `merchantName`, `merchantAddress`, `GamBonds`, and `SettleTime`; `SettleTime` changes documented automatic settlement timing.
+- Printed pages 21 and 32: successful Sale needs Verify/VerifySettle within 20 minutes or source describes automatic reversal.
+- Printed pages 32-33: after banking operation, gateway POSTs callback fields and merchant must correlate `RefId` and `SaleOrderId` to Pay before Verify.
+
 ## Reading rules
 
 Preserve identifiers, case, documented types, response codes, and short required values. Summaries do not establish missing namespaces, WSDL schemas, SOAPAction values, envelopes, serialization, or transport wire details. Record uncertainty rather than extrapolating.

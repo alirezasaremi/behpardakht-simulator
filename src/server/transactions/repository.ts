@@ -12,6 +12,7 @@ export interface TransactionRepository {
   getById(transactionId: string): Transaction | undefined;
   getByTerminalIdAndOrderId(terminalId: bigint, orderId: bigint): Transaction | undefined;
   getByRefId(refId: string): Transaction | undefined;
+  getBySaleReferenceId(saleReferenceId: bigint): Transaction | undefined;
   getByProtocolCorrelation(correlation: ProtocolCorrelation): Transaction | undefined;
   save(transaction: Transaction): Transaction;
 }
@@ -55,6 +56,10 @@ export class InMemoryTransactionRepository implements TransactionRepository {
 
   getByRefId(refId: string): Transaction | undefined {
     return findOne(this.transactions.values(), (transaction) => transaction.refId === refId);
+  }
+
+  getBySaleReferenceId(saleReferenceId: bigint): Transaction | undefined {
+    return findOne(this.transactions.values(), (transaction) => transaction.saleReferenceId === saleReferenceId);
   }
 
   getByProtocolCorrelation(correlation: ProtocolCorrelation): Transaction | undefined {

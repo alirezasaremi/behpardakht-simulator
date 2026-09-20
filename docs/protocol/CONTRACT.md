@@ -46,4 +46,6 @@ Source says the later-operation `orderId` need not be unique and may equal `sale
 
 ## POST semantics
 
-Successful Pay sends `RefId` by POST to payment page. After payment, payment page sends callback values by POST to `callBackUrl`. No other redirect form, browser behavior, SOAP wire behavior, or retry transport rule is asserted here.
+Successful Pay sends `RefId` by POST to payment page. After banking operation, payment page sends seven callback values by POST to `callBackUrl`: `RefId`, `ResCode`, `SaleOrderId`, `SaleReferenceId`, `CardHolderPan`, `CreditCardSaleResponseDetail`, and `FinalAmount` (printed page 33). Merchant must correlate callback `RefId` and `SaleOrderId` exactly to original Pay `RefId` and `orderId` before Verify.
+
+See [StartPay](START_PAY.md) for production URLs and optional POST fields. No callback encoding/content type, StartPay response/redirect behavior, browser UI, callback retry, or transport outcome mapping is asserted by v1.39.

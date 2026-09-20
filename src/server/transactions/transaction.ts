@@ -35,7 +35,20 @@ export type TransactionEvent =
       saleOrderId: bigint;
       saleReferenceId: bigint;
     }>)
-  | (EventBase & Readonly<{ type: "SALE_NON_SUCCESS"; resCode: string }>)
+  | (EventBase & Readonly<{
+      type: "SALE_NON_SUCCESS";
+      refId: string;
+      resCode: string;
+      saleOrderId: bigint;
+      saleReferenceId: bigint;
+    }>)
+  | (EventBase & Readonly<{ type: "CALLBACK_DISPATCH_ATTEMPTED" }>)
+  | (EventBase & Readonly<{ type: "CALLBACK_DISPATCH_SUCCEEDED"; httpStatus: number }>)
+  | (EventBase & Readonly<{
+      type: "CALLBACK_DISPATCH_FAILED";
+      reason: "DESTINATION_REJECTED" | "HTTP_NON_SUCCESS" | "TIMEOUT" | "TRANSPORT_ERROR";
+      httpStatus?: number;
+    }>)
   | (EventBase & Readonly<{ type: "VERIFY_ATTEMPTED" }>)
   | (EventBase & Readonly<{ type: "VERIFICATION_CONFIRMED" }>)
   | (EventBase & Readonly<{ type: "INQUIRY_RECORDED" }>)
@@ -56,6 +69,7 @@ export type Transaction = Readonly<{
   refId?: string;
   saleOrderId?: bigint;
   saleReferenceId?: bigint;
+  saleResCode?: string;
   saleState: SaleState;
   verificationState: VerificationState;
   settlementState: SettlementState;
@@ -87,6 +101,8 @@ export type SaleSuccessInput = Readonly<{
 export type SaleNonSuccessInput = Readonly<{
   refId: string;
   resCode: string;
+  saleOrderId: bigint;
+  saleReferenceId: bigint;
 }>;
 
 export function createTransaction(
@@ -149,6 +165,7 @@ export function recordSaleSucceeded(
       lifecycleState: "SALE_SUCCEEDED",
       saleOrderId: input.saleOrderId,
       saleReferenceId: input.saleReferenceId,
+      saleResCode: "0",
       saleCompletedAt: now,
     },
   );
@@ -162,7 +179,7 @@ export function recordSaleNonSuccess(
   identifiers: IdentifierGenerator,
 ): Transaction {
   require(transaction.saleState === "PENDING", transaction, "Sale result requires pending Sale.");
-  require(transaction.refId === input.refId, transaction, "Sale RefId must match assigned RefId.", "PROTOCOL_CORRELATION_MISMATCH");
+  requireCorrelation(transaction, input.refId, input.saleOrderId);
   const now = timestamp(clock);
 
   return appendAt(
@@ -170,12 +187,57 @@ export function recordSaleNonSuccess(
     identifiers,
     now,
     "SALE_NON_SUCCESS",
-    { resCode: input.resCode },
+    input,
     {
       saleState: "NON_SUCCESS",
       lifecycleState: "SALE_NON_SUCCESS",
+      saleOrderId: input.saleOrderId,
+      saleReferenceId: input.saleReferenceId,
+      saleResCode: input.resCode,
       saleCompletedAt: now,
     },
+  );
+}
+
+/** SIMULATOR_INTERNAL callback transport diagnostics. They never change Sale state. */
+export function recordCallbackDispatchAttempted(
+  transaction: Transaction,
+  clock: Clock,
+  identifiers: IdentifierGenerator,
+): Transaction {
+  require(
+    transaction.saleState === "SUCCEEDED" || transaction.saleState === "NON_SUCCESS",
+    transaction,
+    "Callback dispatch requires completed Sale.",
+  );
+  return append(transaction, clock, identifiers, "CALLBACK_DISPATCH_ATTEMPTED", {}, {});
+}
+
+/** SIMULATOR_INTERNAL callback transport diagnostic. */
+export function recordCallbackDispatchSucceeded(
+  transaction: Transaction,
+  httpStatus: number,
+  clock: Clock,
+  identifiers: IdentifierGenerator,
+): Transaction {
+  return append(transaction, clock, identifiers, "CALLBACK_DISPATCH_SUCCEEDED", { httpStatus }, {});
+}
+
+/** SIMULATOR_INTERNAL callback transport diagnostic. */
+export function recordCallbackDispatchFailed(
+  transaction: Transaction,
+  reason: "DESTINATION_REJECTED" | "HTTP_NON_SUCCESS" | "TIMEOUT" | "TRANSPORT_ERROR",
+  httpStatus: number | undefined,
+  clock: Clock,
+  identifiers: IdentifierGenerator,
+): Transaction {
+  return append(
+    transaction,
+    clock,
+    identifiers,
+    "CALLBACK_DISPATCH_FAILED",
+    httpStatus === undefined ? { reason } : { reason, httpStatus },
+    {},
   );
 }
 
@@ -308,6 +370,10 @@ function settle(
 }
 
 function requireCorrelation(transaction: Transaction, refId: string, saleOrderId: bigint): void {
+  /**
+   * PROTOCOL: v1.39 printed page 11 says Sale-stage orderId becomes SaleOrderId;
+   * printed page 33 requires callback OrderId match Pay's sent OrderId.
+   */
   require(transaction.refId === refId, transaction, "Sale RefId must match assigned RefId.", "PROTOCOL_CORRELATION_MISMATCH");
   require(transaction.orderId === saleOrderId, transaction, "SaleOrderId must match Pay orderId.", "PROTOCOL_CORRELATION_MISMATCH");
 }

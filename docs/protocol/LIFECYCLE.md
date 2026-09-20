@@ -22,4 +22,10 @@ Merchant may use `bpVerifySettleRequest` for combined Verify/Settle, or Verify t
 
 ## Simulator decisions
 
-No state machine or timer exists in Goal 1. Later representation of clocks, retry limits, callback dispatch, and state transition mechanics is `SIMULATOR_INTERNAL`; test-controlled timing/outcomes are `SIMULATOR_SCENARIO`.
+Goal 2 adds no protocol endpoint or timer. Its `SIMULATOR_INTERNAL` model records Sale, verification, settlement, and reversal request facts with constrained transitions and append-only events. `VERIFY_ATTEMPTED` represents a future Verify invocation with unresolved outcome; repeated Verify attempts append more `VERIFY_ATTEMPTED` events until a confirmed result, reversal request, or settlement request. `VERIFIED` represents a later confirmed result. Inquiry adds a diagnostic event without changing lifecycle state.
+
+Nonzero callback `ResCode` is recorded as `NON_SUCCESS`, not a final failed-payment assertion: v1.39 documents another Verify call for nonzero callback results. Combined VerifySettle remains limited to the documented successful-Sale path.
+
+`recordVerifySettleRequested` records one accepted combined result as verified plus settlement-requested. `recordReversalRequested` requires a prior Verify attempt and no settlement request, but does not claim provider acceptance or execute reversal. Exact provider eligibility after an unresolved Verify response remains an uncertainty.
+
+`SystemClock` and `ManualClock` exist for later timing tests. They do not run the documented 20-minute/3-hour/6-hour rules, schedule jobs, or create automatic outcomes. Test-controlled timing/outcomes remain `SIMULATOR_SCENARIO`.

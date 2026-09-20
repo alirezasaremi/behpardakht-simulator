@@ -15,5 +15,6 @@ This ledger prevents simulator invention. `DOCUMENTED` means direct v1.39 statem
 | UNSPECIFIED | Exact payment-page UI/card data entry flow | Never collect real credentials; later fake UI must be simulator-only. |
 | DERIVED | `SaleOrderId` correlation | Source states callback `SaleOrderId` must match Pay `orderId` for same transaction. |
 | DOCUMENTED | `encPan` table casing versus redirect examples using `EncPan`; `panHiddenMode` table versus `HiddenMode` redirect example | Preserve source evidence; do not normalize or infer a wire mapping without validation. |
+| UNSPECIFIED | Whether `bpReversalRequest` may succeed after an unresolved/timed-out Verify response, rather than only a confirmed Verify result | Source says Reversal follows Verify but does not specify this outcome prerequisite. Goal 2 records a prior Verify attempt as internal ordering only; future adapter must not claim provider acceptance from domain state. |
 
 Add discoveries with source page and classification before code depends on them.

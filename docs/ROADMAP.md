@@ -1,7 +1,7 @@
 # Roadmap
 
 1. Goal 1: foundation, guardrails, docs, tooling.
-2. Goal 2: transaction domain and state model.
+2. Goal 2: transaction domain and state model. Complete: immutable domain aggregate, transition/event rules, clock, and in-memory repository.
 3. Goal 3: SOAP foundation and `bpPayRequest`.
 4. Goal 4: fake payment page and callback.
 5. Goal 5: `bpVerifyRequest`.

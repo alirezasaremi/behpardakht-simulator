@@ -2,7 +2,7 @@
 
 ## Status
 
-This is an intended future architecture, not Goal 1 implementation. `SIMULATOR_INTERNAL` choices below must never be presented as Behpardakht protocol.
+Goal 2 implements only `src/server/transactions`. `SIMULATOR_INTERNAL` choices below must never be presented as Behpardakht protocol.
 
 ## Boundaries
 
@@ -24,10 +24,22 @@ Separate: scenario engine, developer dashboard
 
 Future server modules: `src/server/protocol`, `src/server/soap`, `src/server/transactions`, `src/server/callbacks`, `src/server/scenarios`, and `src/server/security`.
 
+## Transaction domain (`SIMULATOR_INTERNAL`)
+
+`src/server/transactions` is a small immutable aggregate and no endpoint. It stores protocol-correlating fields using documented casing (`terminalId`, `orderId`, `amount`, `callBackUrl`, `refId`, `saleOrderId`, `saleReferenceId`) plus simulator transaction/event IDs.
+
+Four constrained axes model lifecycle facts: Sale (`PENDING`, `SUCCEEDED`, `NON_SUCCESS`), verification (`NOT_ATTEMPTED`, `ATTEMPTED`, `VERIFIED`), settlement (`NOT_REQUESTED`, `REQUESTED`), and reversal (`NOT_REQUESTED`, `REQUESTED`). Derived `lifecycleState` gives diagnostics a single current label. `NON_SUCCESS` deliberately is not final failure: v1.39 documents a Verify path after nonzero callback `ResCode`. Axes are necessary because an unresolved Verify attempt is materially different from a confirmed Verify, while Inquiry does not itself create a known provider state.
+
+Every accepted transition returns a new immutable snapshot and appends a typed event. Unresolved verification permits repeated `VERIFY_ATTEMPTED` events, matching documented Verify retry direction; a confirmed, settled, or reversal-requested transaction rejects another attempt. Domain errors are simulator-internal and never Behpardakht response codes. No provider response mapping, timer execution, automatic settlement, automatic reversal, callback dispatch, or SOAP work exists.
+
+The replaceable `TransactionRepository` has an in-memory implementation. It enforces documented Pay `orderId` uniqueness within `terminalId` context and supports lookup by simulator ID, Pay correlation, `refId`, and later-operation correlation (`terminalId`, `saleOrderId`, `saleReferenceId`). `bigint` preserves `long` values internally; it is not a wire-serialization decision.
+
+`Clock` has `SystemClock` and deterministic `ManualClock`. It records timestamps only; no scheduled job or real timer is implemented.
+
 ## Non-negotiable security architecture
 
 No real PAN, PIN, CVV2, OTP, banking credential, or secret belongs in UI, logs, storage, fixtures, or source control. Callback destinations need explicit allowlisting, URL parsing/validation, SSRF defense, bounded time/response size, and no blind redirect following. SOAP/XML intake needs size bounds, input validation, safe parsing, and DTD/external-entity/entity-expansion rejection. Diagnostics must be safely rendered. No generic arbitrary HTTP-request feature.
 
 ## Deferred decisions
 
-`SIMULATOR_INTERNAL`: initial persistence will be in-memory and replaceable. Database/persistence, authentication, dashboard, scenario engine, SOAP transport, and payment lifecycle are deferred. Exact WSDL/envelope/serialization choices remain unspecified until source support is established.
+`SIMULATOR_INTERNAL`: database/persistence, authentication, dashboard, scenario engine, SOAP transport, and payment-page/callback implementation are deferred. Exact WSDL/envelope/serialization choices remain unspecified until source support is established.

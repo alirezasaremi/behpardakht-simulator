@@ -2,6 +2,8 @@
 
 Goal 1 coverage is intentionally small: Vitest verifies home-page identity/safety copy; Playwright checks same behavior in Chromium.
 
+Goal 2 Vitest coverage exercises transaction creation, lifecycle transitions, rejection/no-mutation behavior, append-only event order, manual-clock timestamps, repository isolation, Pay-order uniqueness, and protocol-correlation lookup. It does not test SOAP or HTTP behavior.
+
 ```bash
 npm run lint
 npm run typecheck

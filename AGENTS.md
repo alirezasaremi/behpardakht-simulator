@@ -45,3 +45,5 @@ Run only relevant local commands: `npm run dev`, `npm run lint`, `npm run typech
 Update architecture, development, testing, roadmap, protocol, scenario, and uncertainty docs with implementation changes. Definition of done: scoped change works locally; lint, typecheck, unit tests, browser tests, and production build pass when applicable; docs and uncertainty ledger are current; no real credentials or protocol invention introduced.
 
 Final reports must list changed files, commands/tests and results, dependencies added with reason, and newly discovered protocol uncertainties.
+
+After finishing each task suggest a commit message.

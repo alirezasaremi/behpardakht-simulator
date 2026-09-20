@@ -1,6 +1,6 @@
 # Contracts
 
-All facts here are `PROTOCOL`, from v1.39; source uses case-sensitive names and says parameter spelling/case matter. It does **not** establish SOAP namespace, SOAPAction, WSDL schema, envelope, or serialization details.
+All facts here are `PROTOCOL`, from v1.39; source uses case-sensitive names and says parameter spelling/case matter. It does **not** establish SOAP namespace, SOAPAction, WSDL schema content, envelope, operation wrapper, or serialization details. Source printed page 12 lists provider test/operational WSDL URLs; those locations do not establish their wire schema.
 
 ## Pay (`bpPayRequest` / `bpChargePayRequest`)
 
@@ -25,6 +25,10 @@ Pay returns a string with two parts: `ResCode` then, on successful `ResCode` `0`
 | `enc` | `string` | Optional encrypted cardholder national ID; required for documented Mana brokerage case. |
 
 `callBackUrl` domain rule and source redirect `Referer` domain comparison are protocol facts. Simulator allowlisting/SSRF controls are additional `SIMULATOR_INTERNAL` security requirements.
+
+Goal 3 implements only source table-1 field extraction. Table marks `mobileNo`, `encPan`, `panHiddenMode`, `cartItem`, and `enc` optional. It marks `enc` required only for documented Mana brokerage use; Goal 3 has no merchant-category configuration and cannot determine that condition. Source gives `additionalData` maximum 1000 characters and syntax examples `YYYYMMDD` / `HHMMSS` for `localDate` / `localTime`.
+
+Source table 11 labels `41` “duplicate request number,” while Pay notes say duplicate `orderId` returns an error. v1.39 never explicitly connects `41` to duplicate `bpPayRequest` / `orderId`; provider result code and non-success result grammar for this condition are `UNSPECIFIED`. Goal 3 preserves terminal-scoped uniqueness internally and returns a `SIMULATOR_INTERNAL` HTTP 409 SOAP Fault for duplicates. No Goal 3 condition maps to a Behpardakht response code beyond documented success `0,RefId`.
 
 ## Verify, Settle, Inquiry, Reversal, VerifySettle
 

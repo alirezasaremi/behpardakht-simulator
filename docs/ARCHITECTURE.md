@@ -2,14 +2,15 @@
 
 ## Status
 
-Goal 2 implements only `src/server/transactions`. `SIMULATOR_INTERNAL` choices below must never be presented as Behpardakht protocol.
+Goal 3 adds `src/server/soap`, `src/server/protocol`, and local `POST /api/soap`. `SIMULATOR_INTERNAL` choices below must never be presented as Behpardakht protocol.
 
 ## Boundaries
 
 ```text
 Client
-  -> SOAP/protocol boundary
-  -> Behpardakht application service
+  -> local SOAP/HTTP boundary (`/api/soap`)
+  -> XML parser / bpPayRequest adapter
+  -> bpPayRequest application handler
   -> transaction state machine
   -> replaceable in-memory transaction repository
 
@@ -23,6 +24,14 @@ Separate: scenario engine, developer dashboard
 ```
 
 Future server modules: `src/server/protocol`, `src/server/soap`, `src/server/transactions`, `src/server/callbacks`, `src/server/scenarios`, and `src/server/security`.
+
+## Goal 3 SOAP boundary (`SIMULATOR_INTERNAL` unless stated otherwise)
+
+`src/app/api/soap/route.ts` owns only local HTTP entry. `src/server/soap` bounds body intake, parses XML, applies local SOAP compatibility rules, serializes local SOAP responses/faults, and dispatches only `bpPayRequest`. `src/server/protocol/pay-request.ts` performs Pay application work without HTTP objects.
+
+SOAP requests use a 64 KiB local body cap. `saxes` is event-driven XML parsing; its installed source confirms it does not fetch a DTD or define extra DTD entities unless caller explicitly does so. This adapter rejects every DTD, accepts no remote resource, uses bounded depth/node counts, and does not log input values. Exact limits and SOAP representation are not Behpardakht facts.
+
+`BpPayRequestHandler` validates source-backed field shape at adapter, creates Goal 2 transaction, assigns one unique opaque local RefId, saves its event-bearing immutable snapshot, then formats success as documented `0,RefId`. It retains only existing Goal 2 transaction correlation data: `terminalId`, `orderId`, `amount`, `callBackUrl`, and local `refId`. It never persists `userPassword`, `userName`, card-related optional values, or raw XML.
 
 ## Transaction domain (`SIMULATOR_INTERNAL`)
 
@@ -42,4 +51,4 @@ No real PAN, PIN, CVV2, OTP, banking credential, or secret belongs in UI, logs, 
 
 ## Deferred decisions
 
-`SIMULATOR_INTERNAL`: database/persistence, authentication, dashboard, scenario engine, SOAP transport, and payment-page/callback implementation are deferred. Exact WSDL/envelope/serialization choices remain unspecified until source support is established.
+`SIMULATOR_INTERNAL`: database/persistence, authentication, dashboard, scenario engine, payment-page/callback implementation are deferred. Exact provider WSDL/envelope/serialization choices remain unspecified. Goal 3 local compatibility choices are isolated in `src/server/soap`; see `docs/protocol/SOAP_COMPATIBILITY.md`.

@@ -6,6 +6,15 @@
 
 Source page references below use printed PDF page numbers where visible (for example, PDF page 14 contains source content page 13). The document states SOAP/XML over HTTP or HTTPS at a high level, but source support must be assessed per wire-level claim.
 
+## Transport and service locations (`PROTOCOL`)
+
+Source printed pages 8 and 12 state Web Services with SOAP/XML over HTTP or HTTPS. Printed page 12 lists these provider WSDL locations:
+
+- Test: `https://pgw.dev.bpmellat.ir/pgwchannel/services/pgw?wsdl`
+- Operational: `https://bpm.shaparak.ir/pgwchannel/services/pgw?wsdl`
+
+Supplied PDF names WSDL URLs but does not include fetched schema or specify SOAP namespace, SOAPAction, envelope layout, request/response wrapper elements, or serialization. They are not evidence for simulator local endpoint details.
+
 ## Method inventory (`PROTOCOL`)
 
 - `bpPayRequest`, `bpChargePayRequest`, `bpVerifyRequest`, `bpSettleRequest`, `bpInquiryRequest`, `bpReversalRequest`.

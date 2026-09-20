@@ -2,7 +2,9 @@
 
 Goal 1 coverage is intentionally small: Vitest verifies home-page identity/safety copy; Playwright checks same behavior in Chromium.
 
-Goal 2 Vitest coverage exercises transaction creation, lifecycle transitions, rejection/no-mutation behavior, append-only event order, manual-clock timestamps, repository isolation, Pay-order uniqueness, and protocol-correlation lookup. It does not test SOAP or HTTP behavior.
+Goal 2 Vitest coverage exercises transaction creation, lifecycle transitions, rejection/no-mutation behavior, append-only event order, manual-clock timestamps, repository isolation, Pay-order uniqueness, and protocol-correlation lookup.
+
+Goal 3 Vitest coverage adds `bpPayRequest` application and SOAP/HTTP-boundary tests. They cover bigint intake beyond JavaScript safe-number range, deterministic and case-preserved RefId values, successful transaction persistence, Pay order uniqueness per terminal, no password persistence/events, simulator-internal duplicate fault, malformed XML, unsupported operations, invalid/missing input, DTD rejection, and body/field safety limits. Tests instantiate a local `Request` and assert returned `Response`; no external server, provider URL, or real credential is used.
 
 ```bash
 npm run lint

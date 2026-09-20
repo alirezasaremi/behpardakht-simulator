@@ -5,10 +5,13 @@ This ledger prevents simulator invention. `DOCUMENTED` means direct v1.39 statem
 | Classification | Item | Status / handling |
 | --- | --- | --- |
 | DOCUMENTED | High-level stack | Source names SOAP/XML over HTTP or HTTPS. |
-| UNSPECIFIED | SOAP namespace, SOAPAction, WSDL schema, SOAP envelope, operation wrapper, element order, serialization, and transport headers | Do not implement or claim until directly supported by source material. |
+| DOCUMENTED | Provider WSDL locations | Printed source page 12 lists test `https://pgw.dev.bpmellat.ir/pgwchannel/services/pgw?wsdl` and operational `https://bpm.shaparak.ir/pgwchannel/services/pgw?wsdl`. PDF does not embed WSDL schema. |
+| UNSPECIFIED | SOAP namespace, SOAPAction, WSDL schema content, SOAP envelope, operation wrapper, element order, serialization, and transport headers | Goal 3 local profile must not be claimed as provider behavior. |
 | UNSPECIFIED | Exact response-string grammar beyond illustrated Pay `ResCode, RefId` and response-code strings | Preserve documented identifiers; establish parsing compatibility only in later source-backed work. |
 | UNSPECIFIED | Full required/optional semantics for every specialized-operation parameter | Specialized methods deferred; extract only when their Goal begins. |
-| UNSPECIFIED | Simulator endpoint paths and local redirect URLs | Must be explicit `SIMULATOR_DECISION`, never source claim. |
+| SIMULATOR_DECISION | Goal 3 local SOAP endpoint and profile | `POST /api/soap`, SOAP 1.1 envelope, operation local-name matching, local response wrapper/faults, 400 fault status, and content type are usability choices. See `SOAP_COMPATIBILITY.md`. |
+| UNSPECIFIED | Exact provider behavior for malformed SOAP/XML, unsupported operation, missing XML field, oversized input, and unauthorized/mismatched callback domain | Goal 3 uses local transport faults. It maps none of these to a provider ResCode. |
+| UNSPECIFIED | Provider response for duplicate Pay `orderId` | Source says `bpPayRequest` `orderId` must be unique and duplicate requests return an error; table 11 separately labels `41` duplicate request number. No source text ties `41` to duplicate Pay. Goal 3 enforces uniqueness internally and returns a local HTTP 409 SOAP Fault, not a Behpardakht ResCode. |
 | SIMULATOR_DECISION | In-memory, replaceable transaction repository | Planned initial persistence; no database in initial scope. |
 | SIMULATOR_DECISION | Callback allowlist, SSRF protections, timeout/response caps, and XML size/DTD/entity protections | Security baseline imposed by project, beyond documented merchant domain rule. |
 | SIMULATOR_DECISION | Clock, timer execution, state representation, idempotency mechanics, diagnostics, and UI | Required to simulate; source does not define implementation mechanism. |

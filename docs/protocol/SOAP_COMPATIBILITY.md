@@ -1,0 +1,65 @@
+# Goal 3 local SOAP compatibility profile
+
+This profile makes a local development simulator usable. It is not a claim of production Behpardakht wire compatibility.
+
+## v1.39 facts (`PROTOCOL`)
+
+- Printed source page 8: SOAP uses XML; transport is HTTP or HTTPS.
+- Printed source page 12: provider test and operational WSDL URLs are listed in `SOURCE.md`.
+- Printed pages 14-16: `bpPayRequest` fields, case-sensitive spellings, source types, optional fields, `additionalData` maximum 1000 characters, and `localDate` / `localTime` examples.
+- Printed pages 14-17: successful Pay result example `0, AF82041a2Bf6989c7fF9`; first component is `ResCode`, second is case-sensitive `RefId`; Pay `orderId` must be unique and duplicate request returns an error.
+- Printed page 36: table 11 labels `41` “duplicate request number.” PDF does not explicitly connect this row to duplicate Pay `orderId`.
+
+## Still unspecified by v1.39
+
+PDF does not supply WSDL schema contents, XML namespaces, SOAP version/envelope structure, request/response wrapper names, element order at XML wire level, SOAPAction rules, transport headers, malformed XML behavior, provider error-envelope shape, or provider code/result grammar for duplicate Pay `orderId`. Provider service URLs are documented, but no local endpoint is.
+
+## Local choices (`SIMULATOR_INTERNAL`)
+
+- Endpoint: `POST /api/soap`; never production host or proxy.
+- SOAP version: SOAP 1.1 envelope namespace `http://schemas.xmlsoap.org/soap/envelope/`.
+- Envelope: one SOAP `Body`, one direct operation element. Optional operation namespace/prefix is ignored; local element name must be exactly `bpPayRequest`.
+- Supported operation: only `bpPayRequest`.
+- Response: SOAP 1.1 envelope containing `bpPayRequestResponse` / `bpPayRequestResult`; successful text is documented `0,RefId`.
+- Faults: malformed/unsupported/structurally invalid input returns HTTP 400 local SOAP `Fault`, not Behpardakht `ResCode`. Internal failures return generic HTTP 500 local SOAP `Fault`.
+- Duplicate `(terminalId, orderId)`: terminal-scoped uniqueness is preserved. Local service returns HTTP 409 SOAP Fault `Client.DuplicatePayOrderId`; this is not Behpardakht `41` or any provider response code.
+- No SOAPAction requirement is enforced because v1.39 does not define one.
+- Decimal integer text is converted directly to `bigint`; it must use ASCII digits only. This avoids JavaScript number precision loss. No production long lexical/range claim is made.
+- Local RefIds use opaque `local_` plus random UUID-derived token. They are uniqueness-checked against running repository state, case-sensitive, transport-safe, non-secret, and injectable in tests. Their format is not provider format.
+- Merchant authentication/configuration, Mana brokerage category, registered-domain lookup, payment-page redirect, and callback execution are not implemented.
+
+## Input validation and XML safety
+
+Maximum raw request size is 65,536 bytes. Bodies exceeding it are stopped before XML parsing. Service uses `saxes` event-driven parsing, rejects every DTD declaration (and DTD entity definitions), does not fetch schemas/resources, accepts no external entity resolution, limits XML depth to 32 and nodes to 256, and reports malformed XML with local fault. It uses source's 1000-character `additionalData` bound; other local field caps are simulator safety limits.
+
+No request body, password, card-like optional input, or raw XML is logged or stored. `userPassword` is parsed only to meet documented request structure, then discarded.
+
+## Local request example
+
+Start development server with `npm run dev`, then send only fake local values:
+
+```bash
+curl --request POST http://localhost:3000/api/soap \
+  --header 'content-type: text/xml; charset=utf-8' \
+  --data-binary @- <<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <bpPayRequest>
+      <terminalId>9007199254740993</terminalId>
+      <userName>local-merchant</userName>
+      <userPassword>fake-local-password</userPassword>
+      <orderId>9007199254740995</orderId>
+      <amount>1000</amount>
+      <localDate>20260101</localDate>
+      <localTime>120000</localTime>
+      <additionalData>local test order</additionalData>
+      <callBackUrl>https://merchant.test/callback</callBackUrl>
+      <payerId>0</payerId>
+    </bpPayRequest>
+  </soap:Body>
+</soap:Envelope>
+XML
+```
+
+Response contains local SOAP wrapper and `bpPayRequestResult` text `0,<local RefId>`. No redirect, payment page, card entry, callback, Verify, Settle, Inquiry, Reversal, refund, or scenario behavior exists in Goal 3.

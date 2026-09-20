@@ -5,8 +5,7 @@ import { SequenceIdentifierGenerator } from "./identifiers";
 import {
   assignRefId,
   createTransaction,
-  recordInquiry,
-  recordReversalRequested,
+  recordReversalCompleted,
   recordSaleNonSuccess,
   recordSaleSucceeded,
   recordSettlementRequested,
@@ -56,7 +55,7 @@ describe("transaction lifecycle", () => {
       saleState: "PENDING",
       verificationState: "NOT_ATTEMPTED",
       settlementState: "NOT_REQUESTED",
-      reversalState: "NOT_REQUESTED",
+      reversalState: "NOT_REVERSED",
       lifecycleState: "AWAITING_SALE",
       createdAt: "2026-01-01T00:00:00.000Z",
     });
@@ -184,18 +183,6 @@ describe("transaction lifecycle", () => {
     expect(settled.settlementRequestedAt).toBe("2026-01-01T00:00:05.000Z");
   });
 
-  it("records inquiry as event-only while Verify outcome remains unresolved", () => {
-    const { clock, identifiers, transaction } = saleSucceeded();
-    const verifyAttempted = recordVerifyAttempted(transaction, clock, identifiers);
-    clock.advanceBy(1_000);
-    const afterFirstInquiry = recordInquiry(verifyAttempted, clock, identifiers);
-    clock.advanceBy(1_000);
-    const afterSecondInquiry = recordInquiry(afterFirstInquiry, clock, identifiers);
-
-    expect(afterSecondInquiry.lifecycleState).toBe("VERIFY_PENDING");
-    expect(afterSecondInquiry.events.filter((event) => event.type === "INQUIRY_RECORDED")).toHaveLength(2);
-  });
-
   it("records repeated Verify attempts while outcome remains unresolved", () => {
     const { clock, identifiers, transaction } = saleSucceeded();
     const verifyAttempted = recordVerifyAttempted(transaction, clock, identifiers);
@@ -224,16 +211,30 @@ describe("transaction lifecycle", () => {
     );
   });
 
-  it("records reversal only after Verify attempt and blocks later settlement", () => {
+  it("represents known reversed state without erasing prior history", () => {
     const { clock, identifiers, transaction } = saleSucceeded();
     const verifyAttempted = recordVerifyAttempted(transaction, clock, identifiers);
     clock.advanceBy(1_000);
-    const reversed = recordReversalRequested(verifyAttempted, clock, identifiers);
+    const reversed = recordReversalCompleted(verifyAttempted, clock, identifiers);
 
-    expect(reversed.lifecycleState).toBe("REVERSAL_REQUESTED");
-    expect(reversed.reversalState).toBe("REQUESTED");
+    expect(reversed.lifecycleState).toBe("REVERSED");
+    expect(reversed.reversalState).toBe("REVERSED");
+    expect(reversed.events.map((event) => event.type)).toEqual([
+      "TRANSACTION_CREATED",
+      "REF_ID_ASSIGNED",
+      "SALE_SUCCEEDED",
+      "VERIFY_ATTEMPTED",
+      "REVERSAL_COMPLETED",
+    ]);
     expect(() => recordSettlementRequested(reversed, clock, identifiers)).toThrow(TransactionDomainError);
-    expect(() => recordReversalRequested(reversed, clock, identifiers)).toThrow(TransactionDomainError);
+    expect(() => recordReversalCompleted(reversed, clock, identifiers)).toThrow(TransactionDomainError);
+  });
+
+  it("keeps simulator known-reversed representation constrained", () => {
+    const { clock, identifiers, transaction } = saleSucceeded();
+    const verified = recordVerificationConfirmed(recordVerifyAttempted(transaction, clock, identifiers), clock, identifiers);
+
+    expect(() => recordReversalCompleted(verified, clock, identifiers)).toThrow(TransactionDomainError);
   });
 });
 

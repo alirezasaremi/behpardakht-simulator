@@ -33,7 +33,7 @@ This inventory does not make every method an MVP. See `ROADMAP.md` for simulator
 ## Goal 5 source locations (`PROTOCOL`)
 
 - Printed page 21: `bpVerifyRequest` purpose, response-code-string return, exact table-2 parameters/types, callback `ResCode` `0` relationship, nonzero-callback retry wording, non-unique Verify `orderId`, and 20-minute automatic-reversal statement.
-- Printed pages 36-37, table 11: `0` completed successfully, `43` prior Verify succeeded, and `48` reversed transaction meaning. Page 21 names previously reversed but does not connect a local completed-reversal implementation to response `48`.
+- Printed pages 36-37, table 11: `0` completed successfully, `43` prior Verify succeeded, and `48` reversed transaction meaning. Goal 7 combines page-21 previous-reversal Verify wording with table `48`.
 
 ## Goal 6 source locations (`PROTOCOL`)
 
@@ -41,6 +41,13 @@ This inventory does not make every method an MVP. See `ROADMAP.md` for simulator
 - Printed page 20: automatic settlement after three hours absent merchant reversal/settlement request; any StartPay `SettleTime` changes time to six hours. Goal 6 documents but does not automate these rules.
 - Printed pages 23-24: Reversal timing and no settlement-request prerequisite for later Reversal; Goal 6 leaves Reversal unimplemented.
 - Printed pages 36-37, table 11: global meanings include `45`, `46`, `47`, `61`; source does not expressly tie a nonzero result to `bpSettleRequest`, so Goal 6 returns none.
+
+## Goal 7 source locations (`PROTOCOL`)
+
+- Printed pages 10 and 13: Inquiry follows missing Verify response; Reversal follows failed Inquiry/payment uncertainty and is exceptional.
+- Printed page 21: Verify retry wording expressly includes previously reversed result; successful Sale absent Verify within 20 minutes causes automatic reversal request.
+- Printed pages 23-24, tables 4-5: exact Inquiry/Reversal fields/types, response-code-string returns, non-unique request `orderId` permitted equal to `saleOrderId`, Inquiry purpose, Reversal-after-Verify purpose, three-hour reverse announcement, and end-of-current-day/no-settlement rule. Neither section maps `0` or other code to operation outcome.
+- Printed pages 36-37, table 11: `0` completed successfully and `48` reversed transaction. `0` table entry alone is not Inquiry/Reversal mapping. Page 21 plus table 11 makes `48` Verify-specific after known reversed state; table alone does not establish Reversal retry behavior.
 
 ## Reading rules
 

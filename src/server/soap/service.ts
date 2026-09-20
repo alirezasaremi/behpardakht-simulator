@@ -2,6 +2,10 @@ import { SystemClock, RandomIdentifierGenerator, InMemoryTransactionRepository }
 import {
   BpPayRequestApplicationError,
   BpPayRequestHandler,
+  BpInquiryRequestApplicationError,
+  BpInquiryRequestHandler,
+  BpReversalRequestApplicationError,
+  BpReversalRequestHandler,
   BpSettleRequestApplicationError,
   BpSettleRequestHandler,
   BpVerifyRequestApplicationError,
@@ -12,6 +16,8 @@ import {
 import { SoapInputError } from "./errors";
 import { extractBpPayRequest } from "./pay-request";
 import { serializePayResponse, serializeSettleResponse, serializeSoapFault, serializeVerifyResponse } from "./response";
+import { extractBpInquiryRequest } from "./inquiry-request";
+import { extractBpReversalRequest } from "./reversal-request";
 import { extractBpSettleRequest } from "./settle-request";
 import { extractBpVerifyRequest } from "./verify-request";
 import { MAX_SOAP_REQUEST_BYTES, parseLocalSoapOperation } from "./xml";
@@ -22,12 +28,16 @@ export type LocalSoapServiceDependencies = BpPayRequestHandlerDependencies;
 export class LocalSoapService {
   readonly repository;
   private readonly payRequests: BpPayRequestHandler;
+  private readonly inquiryRequests: BpInquiryRequestHandler;
+  private readonly reversalRequests: BpReversalRequestHandler;
   private readonly settleRequests: BpSettleRequestHandler;
   private readonly verifyRequests: BpVerifyRequestHandler;
 
   constructor(dependencies: LocalSoapServiceDependencies) {
     this.repository = dependencies.repository;
     this.payRequests = new BpPayRequestHandler(dependencies);
+    this.inquiryRequests = new BpInquiryRequestHandler(dependencies);
+    this.reversalRequests = new BpReversalRequestHandler(dependencies);
     this.settleRequests = new BpSettleRequestHandler(dependencies);
     this.verifyRequests = new BpVerifyRequestHandler(dependencies);
   }
@@ -48,6 +58,12 @@ export class LocalSoapService {
         const result = this.settleRequests.execute(extractBpSettleRequest(operation));
         return xmlResponse(serializeSettleResponse(result.result), 200);
       }
+      if (operation.name === "bpInquiryRequest") {
+        this.inquiryRequests.execute(extractBpInquiryRequest(operation));
+      }
+      if (operation.name === "bpReversalRequest") {
+        this.reversalRequests.execute(extractBpReversalRequest(operation));
+      }
       throw new SoapInputError("UNSUPPORTED_OPERATION", "Unsupported SOAP operation.");
     } catch (error) {
       if (error instanceof BpPayRequestApplicationError && error.code === "DUPLICATE_PAY_ORDER_ID") {
@@ -65,6 +81,18 @@ export class LocalSoapService {
       if (error instanceof BpSettleRequestApplicationError) {
         return xmlResponse(
           serializeSoapFault("Client.InvalidSettleRequest", "Settle request cannot be completed by local simulator."),
+          400,
+        );
+      }
+      if (error instanceof BpInquiryRequestApplicationError) {
+        return xmlResponse(
+          serializeSoapFault("Client.InvalidInquiryRequest", "Inquiry request cannot be completed by local simulator."),
+          400,
+        );
+      }
+      if (error instanceof BpReversalRequestApplicationError) {
+        return xmlResponse(
+          serializeSoapFault("Client.InvalidReversalRequest", "Reversal request cannot be completed by local simulator."),
           400,
         );
       }

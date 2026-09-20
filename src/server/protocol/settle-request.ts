@@ -62,9 +62,7 @@ export class BpSettleRequestHandler {
     }
 
     if (
-      transaction.verificationState !== "VERIFIED" ||
-      transaction.settlementState !== "NOT_REQUESTED" ||
-      transaction.reversalState !== "NOT_REQUESTED"
+      transaction.verificationState !== "VERIFIED" || transaction.settlementState !== "NOT_REQUESTED"
     ) {
       throw new BpSettleRequestApplicationError(
         "SETTLE_NOT_ELIGIBLE",

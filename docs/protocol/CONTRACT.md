@@ -34,15 +34,21 @@ Source table 11 labels `41` “duplicate request number,” while Pay notes say 
 
 `bpVerifyRequest` returns a string containing a response code (printed page 21). Its exact source fields are `terminalId`, `userName`, `userPassword`, `orderId`, `saleOrderId`, and `saleReferenceId`; types are respectively `long`, `string`, `string`, `long`, `long`, and `long`.
 
-Verify `orderId` is verification-request number, does not need to be unique, and may equal `saleOrderId`. `saleOrderId` is purchase-request number: original Pay `orderId`; `saleReferenceId` is purchase transaction reference. Callback `ResCode` `0` requires Verify; nonzero callback `ResCode` must not be conflated with Verify response. Source retry wording names success, previously verified, or previously reversed. Source table 11 explicitly defines `43` as prior successful Verify; it defines `48` as reversed, but Goal 5 has no completed-reversal state and does not return it. See [VERIFY.md](VERIFY.md).
+Verify `orderId` is verification-request number, does not need to be unique, and may equal `saleOrderId`. `saleOrderId` is purchase-request number: original Pay `orderId`; `saleReferenceId` is purchase transaction reference. Callback `ResCode` `0` requires Verify; nonzero callback `ResCode` must not be conflated with Verify response. Source retry wording names success, previously verified, or previously reversed. Source table 11 explicitly defines `43` as prior successful Verify and page 21 plus table 11 establishes `48` after completed Reversal. See [VERIFY.md](VERIFY.md).
 
 ## Settle (`bpSettleRequest`)
 
 Settle printed page 22 table 3 fields: `terminalId`, `userName`, `userPassword`, `orderId`, `saleOrderId`, `saleReferenceId`; source types exactly `Long`, `String`, `String`, `Long`, `Long`, `Long`. `orderId` is settlement-request number, not required unique and permitted equal to `saleOrderId`. `saleOrderId` is original Pay purchase-request number; `saleReferenceId` is purchase reference from Verify. It returns response-code string; `0` means successful receipt of merchant settlement request. Source describes settlement work for verified transactions, but `0` is not a statement that merchant deposit completed. See [SETTLE.md](SETTLE.md).
 
-## Inquiry, Reversal, VerifySettle
+## Inquiry (`bpInquiryRequest`)
 
-Each source table gives same field structure. Return value is a response-code string, except source describes `0` for `bpSettleRequest` as successful receipt of settlement request.
+Inquiry printed page 23 table 4 fields are `terminalId`, `userName`, `userPassword`, `orderId`, `saleOrderId`, and `saleReferenceId`, all typed `long`/`string`/`string`/`long`/`long`/`long`. Its `orderId` is inquiry-request number, need not be unique, and may equal `saleOrderId`; it is not Sale lookup key. Source calls Inquiry when merchant missed Verify result and says return is response-code string. It does not define rich status data or operation-specific results for verified/settled/reversed/unknown transactions. See [INQUIRY.md](INQUIRY.md).
+
+## Reversal (`bpReversalRequest`)
+
+Reversal printed pages 23-24 table 5 fields are `terminalId`, `userName`, `userPassword`, `orderId`, `saleOrderId`, and `saleReferenceId`, all typed `long`/`string`/`string`/`long`/`long`/`long`. Its `orderId` is reversal-request number, need not be unique, and may equal `saleOrderId`; it is not Sale lookup key. Source says it follows Verify in uncertain-payment purpose prose, but does not distinguish unknown/successful Verify eligibility. It states three hours after Verify for reverse announcement and end-of-day reversal of debited funds only without settlement request; precedence is unspecified. No operation-specific Reversal `0`/state effect is documented. See [REVERSAL.md](REVERSAL.md).
+
+## VerifySettle
 
 | Operation | `terminalId` | `userName` | `userPassword` | `orderId` | `saleOrderId` | `saleReferenceId` |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -52,7 +58,7 @@ Each source table gives same field structure. Return value is a response-code st
 | `bpReversalRequest` | `long` | `string` | `string` | `long` | `long` | `long` |
 | `bpVerifySettleRequest` | `long` | `string` | `string` | `long` | `long` | `long` |
 
-Source says later-operation `orderId` need not be unique and may equal `saleOrderId` where individual method notes establish it. `saleOrderId` is purchase request number (Pay-stage `orderId`); `saleReferenceId` is bank-provided purchase reference used in Verify and later operations.
+Source says later-operation `orderId` need not be unique and may equal `saleOrderId` where individual method notes establish it. This is explicit for Verify, Settle, Inquiry, and Reversal. `saleOrderId` is purchase request number (Pay-stage `orderId`); `saleReferenceId` is bank-provided purchase reference used in Verify and later operations.
 
 ## POST semantics
 

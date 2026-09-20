@@ -19,13 +19,13 @@ If callback `ResCode` is nonzero, printed page 21 tells merchant to call Verify 
 
 For a successful Sale, no Verify request within 20 minutes causes gateway automatic reversal request; source says funds return to cardholder. Source does not define timer implementation or a Verify result for an elapsed local clock.
 
-## Goal 5 local behavior (`SIMULATOR_INTERNAL`, unless marked)
+## Goal 5-7 local behavior (`SIMULATOR_INTERNAL`, unless marked)
 
 `POST /api/soap` accepts local SOAP profile operation `bpVerifyRequest` with exactly table-2 fields. Decimal `long` values are parsed directly to `bigint`. The service resolves only complete `{ terminalId, saleOrderId, saleReferenceId }` Sale correlation. It neither looks up by nor enforces uniqueness on Verify `orderId`. `userName` and `userPassword` are accepted as compatibility fields only; neither is persisted, logged, emitted in history, or returned.
 
-For a correlated successful Sale, simulator appends `VERIFY_ATTEMPTED`, then `VERIFICATION_CONFIRMED`, saves one immutable final snapshot, and returns `0`. Sale correlation values stay unchanged. Settlement stays `NOT_REQUESTED`; no callback is sent. A subsequent correlated Verify returns `43` and adds no event.
+For a correlated successful Sale, simulator appends `VERIFY_ATTEMPTED`, then `VERIFICATION_CONFIRMED`, saves one immutable final snapshot, and returns `0`. Sale correlation values stay unchanged. Settlement stays `NOT_REQUESTED`; no callback is sent. A subsequent correlated Verify returns `43` and adds no event. Goal 7 adds internal known `REVERSED`: a later correlated Verify returns `48` without event/mutation because page 21 expressly names previous reversal as Verify result. `bpReversalRequest` does not currently create this state.
 
-Current state machine remains able to represent repeated unresolved Verify attempts. Goal 5 has no scenario engine and does not manufacture an unresolved provider outcome. A non-success local Sale therefore has no simulated Verify provider result; it produces a local SOAP fault without mutation. No timer, automatic reversal, Reversal, Settle, Inquiry, or VerifySettle is implemented.
+Current state machine remains able to represent repeated unresolved Verify attempts. Normal SOAP Verify remains atomic and does not manufacture an unresolved provider outcome. A non-success local Sale therefore has no simulated Verify provider result; it produces a local SOAP fault without mutation. No timer, automatic reversal, refund, VerifySettle, or scenario engine exists.
 
 ## Provider response audit
 
@@ -33,5 +33,6 @@ Current state machine remains able to represent repeated unresolved Verify attem
 | ---: | --- | --- | --- | --- |
 | `0` | Transaction completed successfully. | Correlated successful Sale is confirmed. | Printed page 21: Verify returns response code; printed page 36 table 11 code `0`. | `PROTOCOL` mapping; local state mutation is `SIMULATOR_INTERNAL`. |
 | `43` | Verify request already made; prior verification succeeded. | Correlated transaction is already verified. | Printed page 21 retry wording; printed page 37 table 11 code `43`. | `PROTOCOL`. |
+| `48` | Transaction reversed. | Correlated transaction completed local Reversal. | Printed page 21 explicitly names previously reversed Verify result; printed page 37 table 11 code `48`. | `PROTOCOL` mapping; reversal lifecycle is `SIMULATOR_INTERNAL`. |
 
-Printed page 21 also names previously reversed as a possible retry result; table 11 code `48` describes already reversed. Goal 5 cannot represent a completed reversal and therefore never returns `48`. `42` Sale not found is not returned: table 11 explains its matching-Sale condition specifically for refund, not Verify. Unknown or mismatching Verify correlation is a local SOAP fault, never an invented provider code.
+`42` Sale not found is not returned: table 11 explains its matching-Sale condition specifically for refund, not Verify. Unknown or mismatching Verify correlation is a local SOAP fault, never an invented provider code.

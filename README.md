@@ -4,7 +4,7 @@ Local-only development simulator. It never processes real payments. Never enter 
 
 Protocol facts are derived only from supplied Behpardakht Mellat Internet Payment Gateway guide v1.39 (Azar 1404). Read [AGENTS.md](AGENTS.md) and [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) before changing code.
 
-Goal 6 adds documented `bpSettleRequest` through same local SOAP endpoint. After Sale/callback/Verify, merchant sends table-3 Settle fields and receives `0`: receipt of settlement request, not proof funds moved. Settle records local lifecycle state, sends no callback. Repeated/pre-Verify/mismatched Settle: local SOAP Fault; v1.39 lacks Settle-specific nonzero mapping. See [Settle](docs/protocol/SETTLE.md), [Verify](docs/protocol/VERIFY.md), [StartPay](docs/protocol/START_PAY.md), and [Callback](docs/protocol/CALLBACK.md).
+Goal 7 adds table-4 `bpInquiryRequest` and table-5 `bpReversalRequest` parsing/correlation through same local SOAP endpoint. v1.39 supplies no operation-specific result mapping for either, so fully valid current calls fault locally without mutation or invented Behpardakht code. Inquiry purpose does not become `ATTEMPTED`-only eligibility; Reversal requires prior local Verify invocation and rejects settlement-requested state. See [Inquiry](docs/protocol/INQUIRY.md), [Reversal](docs/protocol/REVERSAL.md), [Settle](docs/protocol/SETTLE.md), and [Verify](docs/protocol/VERIFY.md).
 
 Callbacks are blocked by default. For a controlled local receiver, start server with an explicit exact-origin allowlist, for example `SIMULATOR_CALLBACK_ALLOWED_ORIGINS=http://127.0.0.1:4010 npm run dev`. Do not allow arbitrary hosts. No real card information belongs in SOAP, browser forms, logs, or callback payloads.
 
@@ -23,6 +23,7 @@ Callbacks are blocked by default. For a controlled local receiver, start server 
 3. Choose fake success or cancellation. Simulator records Sale, then POSTs callback fields to original stored `callBackUrl` only when destination is explicitly allowlisted.
 4. Merchant must correlate callback `RefId` and `SaleOrderId` to original Pay request, then call `bpVerifyRequest` with callback `SaleOrderId` / `SaleReferenceId` and matching `terminalId`. Verify request `orderId` is separate, non-unique, and may equal `saleOrderId`.
 5. After Verify `0`, call `bpSettleRequest` with table-3 fields. Settle `orderId` is non-unique, may equal `saleOrderId`, and is not Sale lookup key.
+6. Inquiry/Reversal `orderId` values are non-unique and may equal `saleOrderId`. Neither currently returns an invented provider result; valid calls fault locally until source-backed mappings exist.
 
 ```bash
 npm run dev

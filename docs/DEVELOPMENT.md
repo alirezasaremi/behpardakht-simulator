@@ -17,6 +17,8 @@ After a successful Sale/callback, call `bpVerifyRequest` at same endpoint. Use e
 
 After Verify `0`, call `bpSettleRequest` at same endpoint with exact table-3 fields. Settle `saleOrderId` stays original Pay `orderId`; `saleReferenceId` stays callback reference; Settle `orderId` is non-unique and may equal `saleOrderId`. Local `0` means request received, never real deposit confirmation. See [SETTLE.md](protocol/SETTLE.md); fake password remains unpersisted/unlogged.
 
+`bpInquiryRequest` (table 4) and `bpReversalRequest` (table 5) use same six field names/types and complete `{ terminalId, saleOrderId, saleReferenceId }` correlation. Both request `orderId` values are non-unique and may equal `saleOrderId`. Their sections name response-code strings but no operation-specific response mapping, so valid local calls fault without lifecycle mutation. See [INQUIRY.md](protocol/INQUIRY.md) and [REVERSAL.md](protocol/REVERSAL.md). No automatic reversal/settlement timer exists.
+
 After a successful Pay SOAP result, submit a browser form with its exact case-sensitive RefId to `POST http://localhost:3000/local/start-pay`. The local endpoint accepts URL-encoded `RefId` only, then shows fake developer payment controls. It accepts no amount, order, terminal, callback, or Sale identifier from browser action input.
 
 Callback delivery is disabled unless `SIMULATOR_CALLBACK_ALLOWED_ORIGINS` contains an exact allowed `http:` or `https:` origin. Example for a controlled receiver: `SIMULATOR_CALLBACK_ALLOWED_ORIGINS=http://127.0.0.1:4010 npm run dev`. Explicitly configure localhost or `127.0.0.1`; neither is implicitly trusted. The local dispatcher rejects credentials in URLs, redirects, and destinations outside this allowlist.

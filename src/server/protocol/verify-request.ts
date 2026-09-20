@@ -21,8 +21,8 @@ export type BpVerifyRequestHandlerDependencies = Readonly<{
 }>;
 
 export type BpVerifyRequestResult = Readonly<{
-  /** PROTOCOL: 0 success; 43 means a prior Verify succeeded. */
-  result: "0" | "43";
+  /** PROTOCOL: 0 success; 43 prior Verify; 48 completed Reversal. */
+  result: "0" | "43" | "48";
   transaction: Transaction;
 }>;
 
@@ -58,10 +58,12 @@ export class BpVerifyRequestHandler {
       );
     }
 
-    if (
-      transaction.settlementState !== "NOT_REQUESTED" ||
-      transaction.reversalState !== "NOT_REQUESTED"
-    ) {
+    if (transaction.reversalState === "REVERSED") {
+      // PROTOCOL: page 21 explicitly includes previously reversed as a Verify
+      // retry outcome; table 11 identifies its response code as 48.
+      return { result: "48", transaction };
+    }
+    if (transaction.settlementState !== "NOT_REQUESTED") {
       throw new BpVerifyRequestApplicationError(
         "VERIFY_NOT_ELIGIBLE",
         "Verify is not eligible for this local transaction state.",

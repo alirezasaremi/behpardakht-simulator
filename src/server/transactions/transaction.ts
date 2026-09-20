@@ -5,7 +5,7 @@ import type { IdentifierGenerator } from "./identifiers";
 export type SaleState = "PENDING" | "SUCCEEDED" | "NON_SUCCESS";
 export type VerificationState = "NOT_ATTEMPTED" | "ATTEMPTED" | "VERIFIED";
 export type SettlementState = "NOT_REQUESTED" | "REQUESTED";
-export type ReversalState = "NOT_REQUESTED" | "REQUESTED";
+export type ReversalState = "NOT_REVERSED" | "REVERSED";
 
 export type LifecycleState =
   | "AWAITING_SALE"
@@ -14,7 +14,7 @@ export type LifecycleState =
   | "VERIFY_PENDING"
   | "VERIFIED"
   | "SETTLEMENT_REQUESTED"
-  | "REVERSAL_REQUESTED";
+  | "REVERSED";
 
 type EventBase = Readonly<{
   id: string;
@@ -51,12 +51,11 @@ export type TransactionEvent =
     }>)
   | (EventBase & Readonly<{ type: "VERIFY_ATTEMPTED" }>)
   | (EventBase & Readonly<{ type: "VERIFICATION_CONFIRMED" }>)
-  | (EventBase & Readonly<{ type: "INQUIRY_RECORDED" }>)
   | (EventBase & Readonly<{
       type: "SETTLEMENT_REQUESTED";
       via: "SETTLE" | "VERIFY_SETTLE";
     }>)
-  | (EventBase & Readonly<{ type: "REVERSAL_REQUESTED" }>);
+  | (EventBase & Readonly<{ type: "REVERSAL_COMPLETED" }>);
 
 export type Transaction = Readonly<{
   /** SIMULATOR_INTERNAL identifier. */
@@ -81,7 +80,7 @@ export type Transaction = Readonly<{
   verificationAttemptedAt?: string;
   verifiedAt?: string;
   settlementRequestedAt?: string;
-  reversalRequestedAt?: string;
+  reversedAt?: string;
   events: readonly TransactionEvent[];
 }>;
 
@@ -117,7 +116,7 @@ export function createTransaction(
     saleState: "PENDING",
     verificationState: "NOT_ATTEMPTED",
     settlementState: "NOT_REQUESTED",
-    reversalState: "NOT_REQUESTED",
+    reversalState: "NOT_REVERSED",
     lifecycleState: "AWAITING_SALE",
     createdAt: now,
     updatedAt: now,
@@ -251,9 +250,9 @@ export function recordVerifyAttempted(
     (transaction.saleState === "SUCCEEDED" || transaction.saleState === "NON_SUCCESS") &&
       (transaction.verificationState === "NOT_ATTEMPTED" || transaction.verificationState === "ATTEMPTED") &&
       transaction.settlementState === "NOT_REQUESTED" &&
-      transaction.reversalState === "NOT_REQUESTED",
+      transaction.reversalState === "NOT_REVERSED",
     transaction,
-    "Verify requires completed Sale callback with unresolved verification and no settlement or reversal request.",
+    "Verify requires completed Sale callback with unresolved verification and no settlement or completed reversal.",
   );
   const now = timestamp(clock);
 
@@ -280,25 +279,15 @@ export function recordVerificationConfirmed(
   });
 }
 
-/** Inquiry is event-only because source documents inquiry as status lookup, not a lifecycle outcome. */
-export function recordInquiry(
-  transaction: Transaction,
-  clock: Clock,
-  identifiers: IdentifierGenerator,
-): Transaction {
-  require(transaction.verificationState === "ATTEMPTED", transaction, "Inquiry requires an unresolved verification attempt.");
-  return append(transaction, clock, identifiers, "INQUIRY_RECORDED", {}, {});
-}
-
 export function recordSettlementRequested(
   transaction: Transaction,
   clock: Clock,
   identifiers: IdentifierGenerator,
 ): Transaction {
   require(
-    transaction.verificationState === "VERIFIED" && transaction.settlementState === "NOT_REQUESTED" && transaction.reversalState === "NOT_REQUESTED",
+    transaction.verificationState === "VERIFIED" && transaction.settlementState === "NOT_REQUESTED",
     transaction,
-    "Settlement requires verified transaction with no settlement or reversal request.",
+    "Settlement requires verified transaction with no settlement or completed reversal.",
   );
   return settle(transaction, "SETTLE", clock, identifiers);
 }
@@ -310,7 +299,7 @@ export function recordVerifySettleRequested(
   identifiers: IdentifierGenerator,
 ): Transaction {
   require(
-    transaction.saleState === "SUCCEEDED" && transaction.verificationState === "NOT_ATTEMPTED" && transaction.settlementState === "NOT_REQUESTED" && transaction.reversalState === "NOT_REQUESTED",
+    transaction.saleState === "SUCCEEDED" && transaction.verificationState === "NOT_ATTEMPTED" && transaction.settlementState === "NOT_REQUESTED",
     transaction,
     "VerifySettle requires successful Sale with no later lifecycle request.",
   );
@@ -332,26 +321,30 @@ export function recordVerifySettleRequested(
   );
 }
 
-/** Records future reversal request ordering only; provider acceptance remains protocol-adapter work. */
-export function recordReversalRequested(
+/**
+ * SIMULATOR_INTERNAL representation of known reversed state. It is not invoked
+ * by bpReversalRequest: v1.39 does not map that operation's result to this
+ * completed state.
+ */
+export function recordReversalCompleted(
   transaction: Transaction,
   clock: Clock,
   identifiers: IdentifierGenerator,
 ): Transaction {
   require(
-    (transaction.saleState === "SUCCEEDED" || transaction.saleState === "NON_SUCCESS") &&
-      (transaction.verificationState === "ATTEMPTED" || transaction.verificationState === "VERIFIED") &&
+      (transaction.saleState === "SUCCEEDED" || transaction.saleState === "NON_SUCCESS") &&
+      transaction.verificationState === "ATTEMPTED" &&
       transaction.settlementState === "NOT_REQUESTED" &&
-      transaction.reversalState === "NOT_REQUESTED",
+      transaction.reversalState === "NOT_REVERSED",
     transaction,
-    "Reversal requires successful Sale after Verify attempt and before settlement or reversal request.",
+    "Reversal requires an unresolved Verify attempt and no settlement or completed reversal.",
   );
   const now = timestamp(clock);
 
-  return appendAt(transaction, identifiers, now, "REVERSAL_REQUESTED", {}, {
-    reversalState: "REQUESTED",
-    lifecycleState: "REVERSAL_REQUESTED",
-    reversalRequestedAt: now,
+  return appendAt(transaction, identifiers, now, "REVERSAL_COMPLETED", {}, {
+    reversalState: "REVERSED",
+    lifecycleState: "REVERSED",
+    reversedAt: now,
   });
 }
 

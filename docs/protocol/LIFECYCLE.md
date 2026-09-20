@@ -15,7 +15,7 @@ Merchant may use `bpVerifySettleRequest` for combined Verify/Settle, or Verify t
 ## Timing and repeated states (`PROTOCOL`)
 
 - Successful Sale needs `bpVerifyRequest` within 20 minutes or gateway sends automatic reversal request; document says funds return to cardholder. Same 20-minute rule appears for `bpVerifySettleRequest`.
-- `bpReversalRequest` must follow `bpVerifyRequest`; latest reverse request time is 3 hours after Verify. Source says debited funds return by end of same day if settlement request was not sent.
+- `bpReversalRequest` must follow `bpVerifyRequest`; latest reverse announcement is 3 hours after Verify. Separately, source says debited funds return by end of same day if settlement request was not sent. Source does not state relationship/precedence, so simulator enforces neither time deadline.
 - Default automatic settlement: after 3 hours (180 minutes), for successful transactions without reversal or settlement request, Behpardakht sends settlement on merchant's behalf.
 - When redirect POST includes `SettleTime` with any string value alongside `RefId`, source says settlement time changes to 6 hours (360 minutes).
 - Retrying Verify after nonzero callback `ResCode` is described until response indicates success, previously verified, or previously reversed. VerifySettle also adds previously settled. Catalogue codes include `43`, `45`, `48`; `45` catalogue wording alone does not establish `bpSettleRequest` retry behavior. Callback `ResCode` is not Verify result.
@@ -30,10 +30,12 @@ Goal 5 implements local SOAP Verify for a correlated successful Sale. It records
 
 Goal 6 accepts local SOAP Settle only after correlated `VERIFIED` state. It appends `SETTLEMENT_REQUESTED` with `via: "SETTLE"`, preserves Sale/Verify, sets settlement `REQUESTED`, and returns `0` for received settlement request. This state labels simulator protocol lifecycle, not actual merchant deposit. Repeated/pre-Verify/correlation failures are local no-mutation Faults because source lacks operation-specific nonzero mapping. No timer performs default three-hour or `SettleTime` six-hour automatic settlement.
 
-Goal 2 adds no timer. Its `SIMULATOR_INTERNAL` model records Sale, verification, settlement, and reversal request facts with constrained transitions and append-only events. `VERIFY_ATTEMPTED` represents a future Verify invocation with unresolved outcome; repeated Verify attempts append more `VERIFY_ATTEMPTED` events until a confirmed result, reversal request, or settlement request. `VERIFIED` represents a later confirmed result. Inquiry adds a diagnostic event without changing lifecycle state.
+Goal 7 parses/correlates SOAP Inquiry/Reversal but returns no provider code: source names response-code strings without operation-specific mappings. Inquiry purpose does not make `ATTEMPTED` a hard eligibility rule. Reversal requires prior local Verify invocation and rejects settlement-requested state, but source does not distinguish `ATTEMPTED`/`VERIFIED` eligibility. Both operations fault locally without mutation. Internal known `REVERSED` state makes source-backed Verify `48` reachable; it is not Reversal SOAP success.
+
+Goal 2 adds no timer. Its `SIMULATOR_INTERNAL` model records Sale, verification, settlement, and known reversed facts with constrained transitions and append-only events. `VERIFY_ATTEMPTED` represents a future Verify invocation with unresolved outcome; repeated Verify attempts append more `VERIFY_ATTEMPTED` events until a confirmed result, known reversed state, or settlement request. `VERIFIED` represents a later confirmed result. Inquiry adds no domain event.
 
 Nonzero callback `ResCode` is recorded as `NON_SUCCESS`, not a final failed-payment assertion: v1.39 documents another Verify call for nonzero callback results. Combined VerifySettle remains limited to the documented successful-Sale path.
 
-`recordVerifySettleRequested` records one accepted combined result as verified plus settlement-requested. `recordReversalRequested` requires a prior Verify attempt and no settlement request, but does not claim provider acceptance or execute reversal. Exact provider eligibility after an unresolved Verify response remains an uncertainty.
+`recordVerifySettleRequested` records one accepted combined result as verified plus settlement-requested. `recordReversalCompleted` is internal known-reversed representation and is not invoked by Reversal SOAP. Exact Reversal eligibility/result remains an uncertainty.
 
 `SystemClock` and `ManualClock` exist for later timing tests. They do not run the documented 20-minute/3-hour/6-hour rules, schedule jobs, or create automatic outcomes. Test-controlled timing/outcomes remain `SIMULATOR_SCENARIO`.

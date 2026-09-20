@@ -5,7 +5,7 @@ import {
   SequenceIdentifierGenerator,
 } from "@/server/transactions";
 import type { RefIdGenerator } from "@/server/protocol";
-import { recordSaleSucceeded } from "@/server/transactions";
+import { recordSaleSucceeded, recordVerifyAttempted } from "@/server/transactions";
 import { MAX_SOAP_REQUEST_BYTES } from "./xml";
 import { createLocalSoapService } from "./service";
 
@@ -93,6 +93,57 @@ function settleXml(overrides: Record<string, string> = {}): string {
   return `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><bpSettleRequest>${Object.entries(fields)
     .map(([name, value]) => `<${name}>${value}</${name}>`)
     .join("")}</bpSettleRequest></soap:Body></soap:Envelope>`;
+}
+
+function inquiryXml(overrides: Record<string, string> = {}): string {
+  const fields = {
+    terminalId: "9007199254740993",
+    userName: "local-merchant",
+    userPassword: "fake-test-password",
+    orderId: "9007199254740995",
+    saleOrderId: "9007199254740995",
+    saleReferenceId: "9007199254740999",
+    ...overrides,
+  };
+  return `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><bpInquiryRequest>${Object.entries(fields)
+    .map(([name, value]) => `<${name}>${value}</${name}>`)
+    .join("")}</bpInquiryRequest></soap:Body></soap:Envelope>`;
+}
+
+function reversalXml(overrides: Record<string, string> = {}): string {
+  const fields = {
+    terminalId: "9007199254740993",
+    userName: "local-merchant",
+    userPassword: "fake-test-password",
+    orderId: "9007199254740995",
+    saleOrderId: "9007199254740995",
+    saleReferenceId: "9007199254740999",
+    ...overrides,
+  };
+  return `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><bpReversalRequest>${Object.entries(fields)
+    .map(([name, value]) => `<${name}>${value}</${name}>`)
+    .join("")}</bpReversalRequest></soap:Body></soap:Envelope>`;
+}
+
+function saveUnresolvedVerify(repository: InMemoryTransactionRepository): string {
+  const paid = repository.getByRefId("LocalRef-Aa1");
+  if (paid === undefined) {
+    throw new Error("Pay fixture did not create transaction.");
+  }
+  const clock = new ManualClock(new Date("2026-01-01T00:00:01.000Z"));
+  const identifiers = new SequenceIdentifierGenerator();
+  return repository.save(
+    recordVerifyAttempted(
+      recordSaleSucceeded(
+        paid,
+        { refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999") },
+        clock,
+        identifiers,
+      ),
+      clock,
+      identifiers,
+    ),
+  ).id;
 }
 
 describe("LocalSoapService", () => {
@@ -296,5 +347,90 @@ describe("LocalSoapService", () => {
       expect(body).not.toContain("<bpSettleRequestResult>");
     }
     expect(repository.getById(sold.id)).toEqual(sold);
+  });
+
+  it("faults Inquiry without inventing provider result or ATTEMPTED-only eligibility", async () => {
+    const { repository, service } = createService();
+    await service.handle(request(payXml()));
+    const paid = repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) {
+      throw new Error("Pay fixture did not create transaction.");
+    }
+    const sold = repository.save(recordSaleSucceeded(
+      paid,
+      { refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999") },
+      new ManualClock(new Date("2026-01-01T00:00:01.000Z")),
+      new SequenceIdentifierGenerator(),
+    ));
+    const transactionId = sold.id;
+    const before = repository.getById(transactionId);
+
+    const inquiry = await service.handle(request(inquiryXml()));
+    const body = await inquiry.text();
+    const after = repository.getById(transactionId);
+
+    expect(inquiry.status).toBe(400);
+    expect(body).toContain("Client.InvalidInquiryRequest");
+    expect(body).not.toContain("<bpInquiryRequestResult>");
+    expect(after).toEqual(before);
+  });
+
+  it("requires Verify before Reversal but does not invent Reversal result or mutation", async () => {
+    const { repository, service } = createService();
+    await service.handle(request(payXml()));
+    const paid = repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) {
+      throw new Error("Pay fixture did not create transaction.");
+    }
+    const sold = repository.save(recordSaleSucceeded(
+      paid,
+      { refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999") },
+      new ManualClock(new Date("2026-01-01T00:00:01.000Z")),
+      new SequenceIdentifierGenerator(),
+    ));
+    const beforeVerify = await service.handle(request(reversalXml()));
+    expect(beforeVerify.status).toBe(400);
+    expect(await beforeVerify.text()).toContain("Client.InvalidReversalRequest");
+
+    const attempted = repository.save(recordVerifyAttempted(
+      sold,
+      new ManualClock(new Date("2026-01-01T00:00:02.000Z")),
+      new SequenceIdentifierGenerator(),
+    ));
+    const transactionId = attempted.id;
+    const before = repository.getById(transactionId);
+
+    const reversal = await service.handle(request(reversalXml({ orderId: "9007199254741995" })));
+    const reversalBody = await reversal.text();
+
+    expect(reversal.status).toBe(400);
+    expect(reversalBody).toContain("Client.InvalidReversalRequest");
+    expect(reversalBody).not.toContain("<bpReversalRequestResult>");
+    expect(repository.getById(transactionId)).toEqual(before);
+  });
+
+  it("keeps malformed, mismatched, and known-state Inquiry/Reversal requests local faults without mutation", async () => {
+    const { repository, service } = createService();
+    await service.handle(request(payXml()));
+    const transactionId = saveUnresolvedVerify(repository);
+    const before = repository.getById(transactionId);
+    const malformed = await service.handle(request(inquiryXml({ saleReferenceId: "not-a-long" })));
+    const mismatch = await service.handle(request(reversalXml({ saleOrderId: "1" })));
+
+    for (const response of [malformed, mismatch]) {
+      expect(response.status).toBe(400);
+      const body = await response.text();
+      expect(body).toContain("<soap:Fault>");
+      expect(body).not.toContain("fake-test-password");
+    }
+    expect(repository.getById(transactionId)).toEqual(before);
+
+    await service.handle(request(verifyXml()));
+    const known = repository.getById(transactionId);
+    const inquiry = await service.handle(request(inquiryXml()));
+    const reversal = await service.handle(request(reversalXml()));
+    expect(inquiry.status).toBe(400);
+    expect(reversal.status).toBe(400);
+    expect(repository.getById(transactionId)).toEqual(known);
   });
 });

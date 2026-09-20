@@ -8,6 +8,8 @@ Goal 9 adds transaction-scoped deterministic local scenarios. Default `NORMAL` p
 
 Goal 10 adds separate transaction-scoped one-shot transport faults for Verify, Settle, VerifySettle. Fixed PRE HTTP failure prevents execution; fixed POST HTTP failure, malformed SOAP fixture, or 250 ms delay follows committed execution. No arbitrary wire injection; connection abort deferred. See [transport faults](docs/scenarios/TRANSPORT_FAULTS.md).
 
+Goal 11 adds [local developer dashboard](docs/DASHBOARD.md) at `/local`. It reads explicit safe diagnostic DTOs from `/local/api/transactions`; it never edits transaction state or protocol records. Detail pages expose only bounded scenario and transport-fault controls already available under `/local/api/`.
+
 Callbacks are blocked by default. For a controlled local receiver, start server with an explicit exact-origin allowlist, for example `SIMULATOR_CALLBACK_ALLOWED_ORIGINS=http://127.0.0.1:4010 npm run dev`. Do not allow arbitrary hosts. No real card information belongs in SOAP, browser forms, logs, or callback payloads.
 
 ## Minimal local walkthrough

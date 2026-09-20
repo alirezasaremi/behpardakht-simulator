@@ -27,10 +27,17 @@ Local scenario control (`/local/api/scenarios`)
   -> transaction-scoped semantic condition
   -> protocol handler after documented correlation
 
-Separate: developer dashboard
+Developer dashboard (`/local`)
+  -> local read-only dashboard query DTOs (`/local/api/transactions`)
+  -> explicit aggregate/callback/scenario/fault projection
+  -> existing narrow scenario/transport control APIs only
 ```
 
 Server modules: `src/server/protocol`, `src/server/soap`, `src/server/transactions`, `src/server/callbacks`, `src/server/scenarios`; `src/server/security` remains future work.
+
+## Goal 11 dashboard (`SIMULATOR_INTERNAL`)
+
+`src/server/dashboard` is a pure projection boundary over repository snapshots plus scenario and transport registries. It maps only named safe DTO fields, converts every `bigint` to decimal string, preserves `RefId` case, bounds list output to 100, and never emits callback URLs/bodies, SOAP, credentials, card data, errors, or stack values. The local UI consumes `/local/api/transactions` and `/local/api/transactions/[id]`, uses manual refresh, and makes no read-side state change. Existing `/local/api/scenarios` and `/local/api/transport-faults` remain the sole mutation paths and retain their exact bounded enums.
 
 ## Goal 3 SOAP boundary (`SIMULATOR_INTERNAL` unless stated otherwise)
 
@@ -90,4 +97,4 @@ No real PAN, PIN, CVV2, OTP, banking credential, or secret belongs in UI, logs, 
 
 ## Deferred decisions
 
-`SIMULATOR_INTERNAL`: database/persistence, authentication, automatic/retry callback policy, payment-page production behavior remain deferred. Goal 11 dashboard and genuine connection-abort behavior remain deferred. Exact provider WSDL/envelope/serialization choices remain unspecified. Goal 3 local compatibility choices are isolated in `src/server/soap`; see `docs/protocol/SOAP_COMPATIBILITY.md`.
+`SIMULATOR_INTERNAL`: database/persistence, authentication, automatic/retry callback policy, payment-page production behavior remain deferred. Genuine connection-abort behavior remains deferred. Exact provider WSDL/envelope/serialization choices remain unspecified. Goal 3 local compatibility choices are isolated in `src/server/soap`; see `docs/protocol/SOAP_COMPATIBILITY.md`.

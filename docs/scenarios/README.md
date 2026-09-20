@@ -20,6 +20,8 @@ No callback-delivery scenario added. `NORMAL` leaves existing Goal 4 dispatcher 
 
 Goal 10 uses distinct `/local/api/transport-faults` registry, not scenario names or SOAP fields. It provides one-shot merchant-to-gateway observation controls; PRE prevents scenario/protocol execution, POST follows normal execution/commit. See [transport faults](TRANSPORT_FAULTS.md).
 
+Goal 11 dashboard exposes these exact bounded controls on the relevant `/local/transactions/[id]` page. It calls this existing API rather than adding lifecycle editing, and its scenario indicator is a safe process-local diagnostic only. See [dashboard](../DASHBOARD.md).
+
 ## Extension rule
 
 Future scenario must name semantic condition, be deterministic/transaction-scoped where possible, state lifecycle effects, label control mechanics `SIMULATOR_SCENARIO`, preserve `NORMAL`, test/document separately source-backed provider response. Must not add fake Behpardakht request fields, arbitrary ResCode injection, generic state editing, arbitrary callback destinations/payloads, transport-fault machinery, timers, persistence, randomness, scripts, proxy.

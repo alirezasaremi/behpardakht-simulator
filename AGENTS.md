@@ -26,6 +26,8 @@ Classify behavior in code and docs:
 
 Keep future server boundaries narrow: `src/server/protocol`, `soap`, `transactions`, `callbacks`, `scenarios`, and `security`. App Router UI is separate from protocol/service/domain work. In-memory repository is initial design; no database, Prisma, Redis, queues, external infrastructure, generic HTTP proxy, or speculative protocol implementation.
 
+Dashboard/query surfaces must map explicit safe DTOs. They never serialize aggregates blindly or mutate lifecycle, callback, scenario, or transport state during reads. UI controls may use only existing bounded semantic simulator controls.
+
 Inspect before modifying. Preserve useful existing work, avoid broad rewrites, and implement only current Goal. Do not add SOAP/XML libraries before exact compatibility requirements are established.
 
 ## Code and dependencies

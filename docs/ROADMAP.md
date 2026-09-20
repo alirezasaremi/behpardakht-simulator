@@ -10,7 +10,7 @@
 8. Goal 8: `bpVerifySettleRequest`. Complete: table-12 SOAP adapter, bigint-safe correlation, atomic combined lifecycle record, source-backed `0`/`43`/`45`/`48` result audit, and no callback/timer/real settlement.
 9. Goal 9: deterministic scenario engine. Complete: in-memory transaction-scoped `NORMAL` / `VERIFY_UNRESOLVED` / `KNOWN_REVERSED`, narrow local control API, no invented Verify code, auditable forced reversal, existing documented `48` integration. Callback failure reuses Goal 4 dispatcher behavior.
 10. Goal 10: deterministic transport-fault simulation. Complete: bounded transaction-scoped one-shot PRE HTTP failure and POST HTTP failure/malformed SOAP/fixed delay, separate local control and state/scenario separation. Connection abort deferred.
-11. Goal 11: developer dashboard.
+11. Goal 11: developer dashboard. Complete: local safe query DTOs, responsive `/local` list/detail diagnostics, lifecycle/callback/event views, and bounded existing scenario/transport controls. No protocol behavior expanded.
 12. Goal 12+: specialized documented operations: `bpChargePayRequest`, `bpRefundRequest`, `bpRefundRequestV2`, `bpRefundToPANRequest`, `bpDynamicPayRequest`, and `bpCumulativeDynamicPayRequest`.
 
 Initial intended implementation scope is `bpPayRequest`, payment-page redirect, callback, `bpVerifyRequest`, and `bpSettleRequest`; then Inquiry, Reversal, and VerifySettle. This prioritization is `SIMULATOR_INTERNAL`, not a claim all documented methods are MVP operations.

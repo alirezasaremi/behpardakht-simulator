@@ -20,6 +20,8 @@ Goal 9 adds scenario-engine/local-control contract coverage: NORMAL default/isol
 
 Goal 10 adds transport-engine/control/SOAP coverage: bounded profiles/operations, isolation, one-shot claims, clear without aggregate mutation, rejected arbitrary values, PRE Verify precedence/no mutation, POST Verify `503` then `43`, POST VerifySettle `503` then `45`, POST Settle committed state with conservative retry fault, fixed malformed fixture, injected 250 ms sleeper, and NORMAL regression. No dashboard/browser controls added.
 
+Goal 11 adds dashboard query/route coverage: explicit safe list/detail DTOs, decimal bigint identifiers, case-preserved RefId, fixed bounds, callback/scenario/fault/event mapping, sensitive-field structural absence, unknown detail, and pure reads that preserve aggregate/event/scenario/fault state. Browser coverage loads empty `/local`, creates fake Pay/Sale, observes identifiers/states, then exercises scenario and transport controls with real local SOAP.
+
 ```bash
 npm run lint
 npm run typecheck

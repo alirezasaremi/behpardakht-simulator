@@ -31,6 +31,8 @@ No callback transport scripting added. Callback protections remain unchanged.
 
 `DELETE` requires exact `{"refId":"<existing opaque local RefId>"}`. Unknown RefIds, extra fields, arbitrary status/body/XML/headers/delay/scripts/URLs/operation strings reject. `NORMAL` clears assignment. Clearing never changes lifecycle.
 
+Goal 11 displays pending assignments and invokes only this bounded control API from local transaction detail. Dashboard reads do not claim or consume faults. See [dashboard](../DASHBOARD.md).
+
 ## Deferred connection abort
 
 DEFERRED. Current Next.js Node Route Handler uses documented Web `Request`/`Response` APIs; no documented safe underlying connection-abort primitive. HTTP failure is not called connection abort.

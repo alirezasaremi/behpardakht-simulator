@@ -9,6 +9,8 @@ export type ProtocolCorrelation = Readonly<{
 
 export interface TransactionRepository {
   create(transaction: Transaction): Transaction;
+  /** SIMULATOR_INTERNAL read-only snapshot enumeration for local diagnostics. */
+  list(): readonly Transaction[];
   getById(transactionId: string): Transaction | undefined;
   getByTerminalIdAndOrderId(terminalId: bigint, orderId: bigint): Transaction | undefined;
   getByRefId(refId: string): Transaction | undefined;
@@ -42,6 +44,10 @@ export class InMemoryTransactionRepository implements TransactionRepository {
     this.transactions.set(snapshot.id, snapshot);
     this.payOrderIndex.set(payOrderKey, snapshot.id);
     return snapshotOf(snapshot);
+  }
+
+  list(): readonly Transaction[] {
+    return Object.freeze([...this.transactions.values()].map((transaction) => snapshotOf(transaction)));
   }
 
   getById(transactionId: string): Transaction | undefined {

@@ -25,4 +25,6 @@ After a successful Pay SOAP result, submit a browser form with its exact case-se
 
 Callback delivery is disabled unless `SIMULATOR_CALLBACK_ALLOWED_ORIGINS` contains an exact allowed `http:` or `https:` origin. Example for a controlled receiver: `SIMULATOR_CALLBACK_ALLOWED_ORIGINS=http://127.0.0.1:4010 npm run dev`. Explicitly configure localhost or `127.0.0.1`; neither is implicitly trusted. The local dispatcher rejects credentials in URLs, redirects, and destinations outside this allowlist.
 
+For deterministic transaction-local test conditions, inspect `GET /local/api/scenarios`, then assign only enumerated scenario names using `POST /local/api/scenarios` JSON `{"refId":"<Pay RefId>","scenario":"VERIFY_UNRESOLVED"}`. Clear with `DELETE` JSON `{"refId":"<Pay RefId>"}`. This control surface is `SIMULATOR_SCENARIO`, accepts no Behpardakht fields or arbitrary provider codes, disappears on restart. See [scenarios](scenarios/README.md).
+
 Use no database, SOAP/XML parser, proxy, external service, or extra runtime package until needed by an approved Goal. Goal 3 uses `saxes` solely for safe, event-driven XML parsing behind `src/server/soap`.

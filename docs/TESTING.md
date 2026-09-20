@@ -16,6 +16,8 @@ Goal 7 adds unit/local SOAP contract coverage for table-4 Inquiry and table-5 Re
 
 Goal 8 adds unit/local SOAP contract coverage for table-12 VerifySettle parsing, bigint precision, source-based non-unique `orderId`, complete Sale correlation, atomic `0` state transition, one combined-operation event, password omission, no callback, `43` already verified, `45` already settled, `48` known reversed, and no-mutation local faults for malformed/non-success/mismatched requests. No browser control is added. [VERIFY_SETTLE.md](protocol/VERIFY_SETTLE.md) audits every returned code.
 
+Goal 9 adds scenario-engine/local-control contract coverage: NORMAL default/isolation, supported assignment, unknown rejection, clear-without-rollback, no generic state mutation, deterministic repeated unresolved Verify, SOAP Fault without provider result, later normal Verify after clear, forced REVERSED audit event/no fake Reversal event, post-settlement force rejection, source-backed Verify/VerifySettle `48` once state known. Existing Goal 4 dispatcher tests cover callback success/failure. No dashboard/browser flow added.
+
 ```bash
 npm run lint
 npm run typecheck

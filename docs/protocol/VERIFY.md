@@ -25,7 +25,7 @@ For a successful Sale, no Verify request within 20 minutes causes gateway automa
 
 For a correlated successful Sale, simulator appends `VERIFY_ATTEMPTED`, then `VERIFICATION_CONFIRMED`, saves one immutable final snapshot, and returns `0`. Sale correlation values stay unchanged. Settlement stays `NOT_REQUESTED`; no callback is sent. A subsequent correlated Verify returns `43` and adds no event. Goal 7 adds internal known `REVERSED`: a later correlated Verify returns `48` without event/mutation because page 21 expressly names previous reversal as Verify result. `bpReversalRequest` does not currently create this state.
 
-Current state machine remains able to represent repeated unresolved Verify attempts. Normal SOAP Verify remains atomic and does not manufacture an unresolved provider outcome. A non-success local Sale therefore has no simulated Verify provider result; it produces a local SOAP fault without mutation. No timer, automatic reversal, refund, or scenario engine exists.
+Goal 9's `VERIFY_UNRESOLVED` is `SIMULATOR_SCENARIO`: after source-backed correlation/eligibility, it saves `VERIFY_ATTEMPTED`, returns local HTTP 409 SOAP Fault `SimulatorScenario.VerifyUnresolved`. It never returns Behpardakht numeric ResCode because v1.39 supplies no operation-specific unresolved Verify code. Repeated calls append attempts, fault identically; clear permits later normal atomic Verify, preserves earlier events. Inquiry unchanged. `NORMAL` remains prior atomic path. No timer, automatic reversal, refund exists.
 
 ## Provider response audit
 

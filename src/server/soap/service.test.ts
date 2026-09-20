@@ -6,6 +6,7 @@ import {
 } from "@/server/transactions";
 import type { RefIdGenerator } from "@/server/protocol";
 import { recordReversalCompleted, recordSaleSucceeded, recordVerifyAttempted } from "@/server/transactions";
+import { ScenarioEngine } from "@/server/scenarios";
 import { MAX_SOAP_REQUEST_BYTES } from "./xml";
 import { createLocalSoapService } from "./service";
 
@@ -18,15 +19,22 @@ class FixedRefIdGenerator implements RefIdGenerator {
   }
 }
 
-function createService() {
+function createService(withScenarios = false) {
   const repository = new InMemoryTransactionRepository();
+  const clock = new ManualClock(new Date("2026-01-01T00:00:00.000Z"));
+  const identifiers = new SequenceIdentifierGenerator();
+  const scenarios = new ScenarioEngine({ repository, clock, identifiers });
   return {
     repository,
+    clock,
+    identifiers,
+    scenarios,
     service: createLocalSoapService({
       repository,
-      clock: new ManualClock(new Date("2026-01-01T00:00:00.000Z")),
-      identifiers: new SequenceIdentifierGenerator(),
+      clock,
+      identifiers,
       refIds: new FixedRefIdGenerator(),
+      ...(withScenarios ? { scenarios } : {}),
     }),
   };
 }
@@ -293,6 +301,32 @@ describe("LocalSoapService", () => {
       expect(body).not.toContain("fake-test-password");
     }
     expect(repository.getById(sold.id)).toEqual(sold);
+  });
+
+  it("returns local scenario Fault for unresolved Verify without a Behpardakht result", async () => {
+    const { repository, clock, identifiers, scenarios, service } = createService(true);
+    await service.handle(request(payXml()));
+    const paid = repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) {
+      throw new Error("Pay fixture did not create transaction.");
+    }
+    const sold = repository.save(
+      recordSaleSucceeded(
+        paid,
+        { refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999") },
+        clock,
+        identifiers,
+      ),
+    );
+    scenarios.assignScenario(sold, "VERIFY_UNRESOLVED");
+
+    const response = await service.handle(request(verifyXml()));
+    const body = await response.text();
+
+    expect(response.status).toBe(409);
+    expect(body).toContain("<faultcode>SimulatorScenario.VerifyUnresolved</faultcode>");
+    expect(body).not.toContain("<bpVerifyRequestResult>");
+    expect(repository.getById(sold.id)).toMatchObject({ verificationState: "ATTEMPTED", settlementState: "NOT_REQUESTED" });
   });
 
   it("runs Pay-to-Sale-to-Verify-to-Settle through local SOAP without another callback", async () => {

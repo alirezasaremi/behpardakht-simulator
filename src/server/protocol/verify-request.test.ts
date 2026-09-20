@@ -10,6 +10,7 @@ import {
   recordVerifyAttempted,
 } from "@/server/transactions";
 import { BpVerifyRequestHandler, type BpVerifyRequestInput } from "./verify-request";
+import { ScenarioEngine } from "@/server/scenarios";
 
 const initialTime = new Date("2026-01-01T00:00:00.000Z");
 
@@ -184,5 +185,21 @@ describe("BpVerifyRequestHandler", () => {
       handler.execute({ ...input, terminalId: BigInt(1), saleOrderId: BigInt(2), saleReferenceId: BigInt(3) }),
     ).toThrow(expect.objectContaining({ code: "VERIFY_NOT_ELIGIBLE" }));
     expect(repository.getById(nonSuccess.id)).toEqual(nonSuccess);
+  });
+
+  it("records deterministic unresolved scenario attempts without inventing a provider code", () => {
+    const { repository, clock, identifiers, sold, input } = fixture();
+    const scenarios = new ScenarioEngine({ repository, clock, identifiers });
+    const handler = new BpVerifyRequestHandler({ repository, clock, identifiers, scenarios });
+    scenarios.assignScenario(sold, "VERIFY_UNRESOLVED");
+
+    expect(() => handler.execute(input)).toThrow(expect.objectContaining({ code: "VERIFY_UNRESOLVED_SCENARIO" }));
+    expect(() => handler.execute(input)).toThrow(expect.objectContaining({ code: "VERIFY_UNRESOLVED_SCENARIO" }));
+    expect(repository.getById(sold.id)).toMatchObject({ verificationState: "ATTEMPTED", settlementState: "NOT_REQUESTED" });
+    expect(repository.getById(sold.id)?.events.filter((event) => event.type === "VERIFY_ATTEMPTED")).toHaveLength(2);
+
+    scenarios.clearScenario(sold);
+    expect(handler.execute(input).result).toBe("0");
+    expect(repository.getById(sold.id)?.verificationState).toBe("VERIFIED");
   });
 });

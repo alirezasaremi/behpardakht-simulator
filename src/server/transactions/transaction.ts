@@ -55,6 +55,11 @@ export type TransactionEvent =
       type: "SETTLEMENT_REQUESTED";
       via: "SETTLE" | "VERIFY_SETTLE";
     }>)
+  | (EventBase & Readonly<{
+      /** SIMULATOR_SCENARIO: local control action, never a Behpardakht call. */
+      type: "SCENARIO_STATE_FORCED";
+      scenario: "KNOWN_REVERSED";
+    }>)
   | (EventBase & Readonly<{ type: "REVERSAL_COMPLETED" }>);
 
 export type Transaction = Readonly<{
@@ -345,6 +350,32 @@ export function recordReversalCompleted(
   const now = timestamp(clock);
 
   return appendAt(transaction, identifiers, now, "REVERSAL_COMPLETED", {}, {
+    reversalState: "REVERSED",
+    lifecycleState: "REVERSED",
+    reversedAt: now,
+  });
+}
+
+/**
+ * SIMULATOR_SCENARIO: records a locally forced known-reversed lifecycle fact.
+ * It is intentionally distinct from REVERSAL_COMPLETED and bpReversalRequest.
+ */
+export function recordScenarioKnownReversed(
+  transaction: Transaction,
+  clock: Clock,
+  identifiers: IdentifierGenerator,
+): Transaction {
+  require(
+    transaction.saleState === "SUCCEEDED" &&
+      (transaction.verificationState === "NOT_ATTEMPTED" || transaction.verificationState === "ATTEMPTED") &&
+      transaction.settlementState === "NOT_REQUESTED" &&
+      transaction.reversalState === "NOT_REVERSED",
+    transaction,
+    "Known reversed scenario requires successful Sale with unresolved verification and no settlement.",
+  );
+  const now = timestamp(clock);
+
+  return appendAt(transaction, identifiers, now, "SCENARIO_STATE_FORCED", { scenario: "KNOWN_REVERSED" }, {
     reversalState: "REVERSED",
     lifecycleState: "REVERSED",
     reversedAt: now,

@@ -16,6 +16,8 @@ No provider success/result is source-backed. Eligible-form requests return local
 
 `REVERSED` / `REVERSAL_COMPLETED` remains `SIMULATOR_INTERNAL` representation of known reversed state, used only to model source-backed later Verify `48`; it is not bpReversalRequest success result.
 
+Goal 9 additionally makes known reversed state reachable with `KNOWN_REVERSED` (`SIMULATOR_SCENARIO`) local control. It requires successful Sale, unresolved verification, no settlement as simulator safety rules, records `SCENARIO_STATE_FORCED`, never `REVERSAL_COMPLETED` or merchant Reversal call. This does not add provider Reversal result.
+
 ## Provider response audit
 
 `0` is **GLOBAL only**: table 11 says transaction completed successfully, but Reversal section has no operation-specific `0`, example, or lifecycle mapping. Goal 7 returns no Behpardakht code from Reversal. Table-11 `48` likewise does not establish Reversal repeat response.

@@ -1,5 +1,6 @@
 import type { Clock, IdentifierGenerator, Transaction, TransactionRepository } from "@/server/transactions";
 import { recordVerificationConfirmed, recordVerifyAttempted } from "@/server/transactions";
+import { NormalScenarioPolicy, type ScenarioPolicy } from "@/server/scenarios";
 
 /** PROTOCOL: v1.39 printed page 21 table 2 names and types. */
 export type BpVerifyRequestInput = Readonly<{
@@ -18,6 +19,7 @@ export type BpVerifyRequestHandlerDependencies = Readonly<{
   repository: TransactionRepository;
   clock: Clock;
   identifiers: IdentifierGenerator;
+  scenarios?: ScenarioPolicy;
 }>;
 
 export type BpVerifyRequestResult = Readonly<{
@@ -28,7 +30,7 @@ export type BpVerifyRequestResult = Readonly<{
 
 export class BpVerifyRequestApplicationError extends Error {
   constructor(
-    readonly code: "VERIFY_CORRELATION_NOT_FOUND" | "VERIFY_NOT_ELIGIBLE",
+    readonly code: "VERIFY_CORRELATION_NOT_FOUND" | "VERIFY_NOT_ELIGIBLE" | "VERIFY_UNRESOLVED_SCENARIO",
     message: string,
   ) {
     super(message);
@@ -79,6 +81,15 @@ export class BpVerifyRequestHandler {
       );
     }
 
+    if ((this.dependencies.scenarios ?? normalScenarioPolicy).getScenario(transaction) === "VERIFY_UNRESOLVED") {
+      const attempted = recordVerifyAttempted(transaction, this.dependencies.clock, this.dependencies.identifiers);
+      this.dependencies.repository.save(attempted);
+      throw new BpVerifyRequestApplicationError(
+        "VERIFY_UNRESOLVED_SCENARIO",
+        "Verify outcome is deliberately unresolved by local simulator scenario.",
+      );
+    }
+
     // Both domain functions are immutable. Repository writes only final snapshot,
     // so a rejected request cannot persist a partial Verify attempt.
     const attempted = recordVerifyAttempted(transaction, this.dependencies.clock, this.dependencies.identifiers);
@@ -86,3 +97,5 @@ export class BpVerifyRequestHandler {
     return { result: "0", transaction: this.dependencies.repository.save(verified) };
   }
 }
+
+const normalScenarioPolicy = new NormalScenarioPolicy();

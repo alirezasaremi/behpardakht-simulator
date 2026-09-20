@@ -29,6 +29,8 @@ For source-supported success, one immutable domain transition sets verification 
 
 After a separate successful Verify, VerifySettle returns `43` and does not request settlement. After either successful Settle or VerifySettle, it returns `45`. Internal known-reversed state returns `48`. These calls do not mutate history. A non-success Sale, unresolved Verify attempt, unknown/mismatched correlation, malformed request, or other unsupported local state returns local SOAP Fault without mutation; v1.39 provides no additional operation-specific result for those conditions.
 
+Goal 9 `KNOWN_REVERSED` (`SIMULATOR_SCENARIO`) creates existing known-reversed state through local control, not Reversal SOAP. VerifySettle follows already documented prior-reversal mapping, returns `48`; scenario never injects code.
+
 VerifySettle sends no callback and performs no real bank/deposit/funds action. Separate Verify and Settle behavior remains unchanged.
 
 ## 20-minute statement (`PROTOCOL`, not implemented)

@@ -1,4 +1,5 @@
 import { SystemClock, RandomIdentifierGenerator, InMemoryTransactionRepository } from "@/server/transactions";
+import type { ScenarioPolicy } from "@/server/scenarios";
 import {
   BpPayRequestApplicationError,
   BpPayRequestHandler,
@@ -31,7 +32,7 @@ import { extractBpVerifyRequest } from "./verify-request";
 import { extractBpVerifySettleRequest } from "./verify-settle-request";
 import { MAX_SOAP_REQUEST_BYTES, parseLocalSoapOperation } from "./xml";
 
-export type LocalSoapServiceDependencies = BpPayRequestHandlerDependencies;
+export type LocalSoapServiceDependencies = BpPayRequestHandlerDependencies & Readonly<{ scenarios?: ScenarioPolicy }>;
 
 /** SIMULATOR_INTERNAL local HTTP/SOAP adapter. */
 export class LocalSoapService {
@@ -88,6 +89,12 @@ export class LocalSoapService {
         );
       }
       if (error instanceof BpVerifyRequestApplicationError) {
+        if (error.code === "VERIFY_UNRESOLVED_SCENARIO") {
+          return xmlResponse(
+            serializeSoapFault("SimulatorScenario.VerifyUnresolved", "Verify outcome remains unresolved by local scenario."),
+            409,
+          );
+        }
         return xmlResponse(
           serializeSoapFault("Client.InvalidVerifyRequest", "Verify request cannot be completed by local simulator."),
           400,

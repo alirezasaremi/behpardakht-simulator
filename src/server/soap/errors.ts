@@ -5,6 +5,7 @@ export type SoapInputErrorCode =
   | "UNSUPPORTED_ENVELOPE"
   | "UNSUPPORTED_OPERATION"
   | "INVALID_PAY_REQUEST"
+  | "INVALID_SETTLE_REQUEST"
   | "INVALID_VERIFY_REQUEST";
 
 /** SIMULATOR_INTERNAL local transport/validation error; never a provider ResCode. */

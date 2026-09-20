@@ -35,6 +35,13 @@ This inventory does not make every method an MVP. See `ROADMAP.md` for simulator
 - Printed page 21: `bpVerifyRequest` purpose, response-code-string return, exact table-2 parameters/types, callback `ResCode` `0` relationship, nonzero-callback retry wording, non-unique Verify `orderId`, and 20-minute automatic-reversal statement.
 - Printed pages 36-37, table 11: `0` completed successfully, `43` prior Verify succeeded, and `48` reversed transaction meaning. Page 21 names previously reversed but does not connect a local completed-reversal implementation to response `48`.
 
+## Goal 6 source locations (`PROTOCOL`)
+
+- Printed page 22: `bpSettleRequest` purpose, response-code-string return, exact table-3 names/types, `0` successful receipt of merchant settlement request, and non-unique Settle `orderId` permitted equal to `saleOrderId`.
+- Printed page 20: automatic settlement after three hours absent merchant reversal/settlement request; any StartPay `SettleTime` changes time to six hours. Goal 6 documents but does not automate these rules.
+- Printed pages 23-24: Reversal timing and no settlement-request prerequisite for later Reversal; Goal 6 leaves Reversal unimplemented.
+- Printed pages 36-37, table 11: global meanings include `45`, `46`, `47`, `61`; source does not expressly tie a nonzero result to `bpSettleRequest`, so Goal 6 returns none.
+
 ## Reading rules
 
 Preserve identifiers, case, documented types, response codes, and short required values. Summaries do not establish missing namespaces, WSDL schemas, SOAPAction values, envelopes, serialization, or transport wire details. Record uncertainty rather than extrapolating.

@@ -10,6 +10,8 @@ Goal 4 adds unit and contract tests for bounded local StartPay forms, RefId look
 
 Goal 5 adds unit and local SOAP contract coverage for table-2 Verify parsing, bigint precision, successful `Pay -> Sale -> Verify`, complete terminal/sale-order/sale-reference correlation, non-unique Verify `orderId`, `0` success, `43` already verified, ordered immutable events, no settlement/callback, password omission, malformed input, and rejection with no partial mutation. Expected provider codes are cited in [VERIFY.md](protocol/VERIFY.md); unknown/mismatching correlation remains a local SOAP fault.
 
+Goal 6 adds unit/local SOAP contract coverage for table-3 Settle parsing, bigint precision, `Pay -> Sale -> Verify -> Settle`, complete correlation, non-unique Settle `orderId` equal to `saleOrderId`, `0` request-received result, immutable settlement event/state, preserved Sale/Verify, no callback, password omission, and no-mutation SOAP Faults for malformed/mismatched/pre-Verify/repeated Settle. [SETTLE.md](protocol/SETTLE.md) audits every provider result: only `0`.
+
 ```bash
 npm run lint
 npm run typecheck

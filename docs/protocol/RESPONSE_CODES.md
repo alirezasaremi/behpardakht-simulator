@@ -72,3 +72,7 @@
 ## Goal 5 Verify response audit
 
 Only `0` and `43` are returned by `bpVerifyRequest`. `0` is returned after Goal 5 confirms a fully correlated successful Sale; `43` is returned for same transaction after confirmed Verify. Both mappings have direct basis in printed pages 21, 36, and 37; state mutation is `SIMULATOR_INTERNAL`. `48` is not returned because current model has no completed reversal; `42` is not returned because its explicit matching-Sale explanation is refund-specific. All malformed, unsupported, mismatched, unknown, and non-modeled Verify cases remain local SOAP faults. See [VERIFY.md](VERIFY.md).
+
+## Goal 6 Settle response audit
+
+Only `0` returns from `bpSettleRequest`: printed page 22 says it means merchant settlement request received successfully. Correlated verified local Sale records settlement request; state recording is `SIMULATOR_INTERNAL`. No nonzero code returns: table-11 `45`, `46`, `47`, and `61` lack explicit `bpSettleRequest` applicability in source. Repeated, pre-Verify, unknown, mismatched, malformed, and unsupported Settle requests are local SOAP Faults. See [SETTLE.md](SETTLE.md).

@@ -80,6 +80,21 @@ function verifyXml(overrides: Record<string, string> = {}): string {
     .join("")}</bpVerifyRequest></soap:Body></soap:Envelope>`;
 }
 
+function settleXml(overrides: Record<string, string> = {}): string {
+  const fields = {
+    terminalId: "9007199254740993",
+    userName: "local-merchant",
+    userPassword: "fake-test-password",
+    orderId: "9007199254740995",
+    saleOrderId: "9007199254740995",
+    saleReferenceId: "9007199254740999",
+    ...overrides,
+  };
+  return `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><bpSettleRequest>${Object.entries(fields)
+    .map(([name, value]) => `<${name}>${value}</${name}>`)
+    .join("")}</bpSettleRequest></soap:Body></soap:Envelope>`;
+}
+
 describe("LocalSoapService", () => {
   it("handles supported SOAP bpPayRequest and persists protocol correlation without password", async () => {
     const { repository, service } = createService();
@@ -210,6 +225,75 @@ describe("LocalSoapService", () => {
       expect(response.status).toBe(400);
       expect(body).toContain("<soap:Fault>");
       expect(body).not.toContain("fake-test-password");
+    }
+    expect(repository.getById(sold.id)).toEqual(sold);
+  });
+
+  it("runs Pay-to-Sale-to-Verify-to-Settle through local SOAP without another callback", async () => {
+    const { repository, service } = createService();
+    await service.handle(request(payXml()));
+    const paid = repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) {
+      throw new Error("Pay fixture did not create transaction.");
+    }
+    const sold = repository.save(
+      recordSaleSucceeded(
+        paid,
+        { refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999") },
+        new ManualClock(new Date("2026-01-01T00:00:01.000Z")),
+        new SequenceIdentifierGenerator(),
+      ),
+    );
+
+    await service.handle(request(verifyXml()));
+    const settled = await service.handle(request(settleXml()));
+    const settledBody = await settled.text();
+    const repeated = await service.handle(request(settleXml()));
+
+    expect(settled.status).toBe(200);
+    expect(settledBody).toContain("<bpSettleRequestResponse>");
+    expect(settledBody).toContain("<bpSettleRequestResult>0</bpSettleRequestResult>");
+    expect(repository.getById(sold.id)).toMatchObject({
+      saleState: "SUCCEEDED",
+      verificationState: "VERIFIED",
+      settlementState: "REQUESTED",
+    });
+    expect(repository.getById(sold.id)?.events.filter((event) => event.type.startsWith("CALLBACK_DISPATCH"))).toHaveLength(0);
+    // UNSPECIFIED: no page-22 Settle retry rule ties code 45 to bpSettleRequest.
+    expect(repeated.status).toBe(400);
+    expect(await repeated.text()).toContain("Client.InvalidSettleRequest");
+  });
+
+  it("keeps malformed, pre-Verify, and mismatched Settle requests local faults without mutation", async () => {
+    const { repository, service } = createService();
+    await service.handle(request(payXml()));
+    const paid = repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) {
+      throw new Error("Pay fixture did not create transaction.");
+    }
+    const clock = new ManualClock(new Date("2026-01-01T00:00:01.000Z"));
+    const identifiers = new SequenceIdentifierGenerator();
+    const sold = repository.save(
+      recordSaleSucceeded(
+        paid,
+        { refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999") },
+        clock,
+        identifiers,
+      ),
+    );
+
+    const malformed = await service.handle(request(settleXml({ saleOrderId: "not-a-long" })));
+    const mismatched = await service.handle(request(settleXml({ saleReferenceId: "1" })));
+    const mismatchedTerminal = await service.handle(request(settleXml({ terminalId: "1" })));
+    const mismatchedSaleOrder = await service.handle(request(settleXml({ saleOrderId: "1" })));
+    const beforeVerify = await service.handle(request(settleXml()));
+
+    for (const response of [malformed, mismatched, mismatchedTerminal, mismatchedSaleOrder, beforeVerify]) {
+      const body = await response.text();
+      expect(response.status).toBe(400);
+      expect(body).toContain("<soap:Fault>");
+      expect(body).not.toContain("fake-test-password");
+      expect(body).not.toContain("<bpSettleRequestResult>");
     }
     expect(repository.getById(sold.id)).toEqual(sold);
   });

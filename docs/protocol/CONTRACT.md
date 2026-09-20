@@ -36,7 +36,11 @@ Source table 11 labels `41` “duplicate request number,” while Pay notes say 
 
 Verify `orderId` is verification-request number, does not need to be unique, and may equal `saleOrderId`. `saleOrderId` is purchase-request number: original Pay `orderId`; `saleReferenceId` is purchase transaction reference. Callback `ResCode` `0` requires Verify; nonzero callback `ResCode` must not be conflated with Verify response. Source retry wording names success, previously verified, or previously reversed. Source table 11 explicitly defines `43` as prior successful Verify; it defines `48` as reversed, but Goal 5 has no completed-reversal state and does not return it. See [VERIFY.md](VERIFY.md).
 
-## Settle, Inquiry, Reversal, VerifySettle
+## Settle (`bpSettleRequest`)
+
+Settle printed page 22 table 3 fields: `terminalId`, `userName`, `userPassword`, `orderId`, `saleOrderId`, `saleReferenceId`; source types exactly `Long`, `String`, `String`, `Long`, `Long`, `Long`. `orderId` is settlement-request number, not required unique and permitted equal to `saleOrderId`. `saleOrderId` is original Pay purchase-request number; `saleReferenceId` is purchase reference from Verify. It returns response-code string; `0` means successful receipt of merchant settlement request. Source describes settlement work for verified transactions, but `0` is not a statement that merchant deposit completed. See [SETTLE.md](SETTLE.md).
+
+## Inquiry, Reversal, VerifySettle
 
 Each source table gives same field structure. Return value is a response-code string, except source describes `0` for `bpSettleRequest` as successful receipt of settlement request.
 
@@ -48,7 +52,7 @@ Each source table gives same field structure. Return value is a response-code st
 | `bpReversalRequest` | `long` | `string` | `string` | `long` | `long` | `long` |
 | `bpVerifySettleRequest` | `long` | `string` | `string` | `long` | `long` | `long` |
 
-Source says the later-operation `orderId` need not be unique and may equal `saleOrderId` for convenience. `saleOrderId` is purchase request number (Pay-stage `orderId`); `saleReferenceId` is bank-provided purchase reference used in Verify and later operations.
+Source says later-operation `orderId` need not be unique and may equal `saleOrderId` where individual method notes establish it. `saleOrderId` is purchase request number (Pay-stage `orderId`); `saleReferenceId` is bank-provided purchase reference used in Verify and later operations.
 
 ## POST semantics
 

@@ -2,14 +2,14 @@
 
 ## Status
 
-Goal 5 adds source-backed `bpVerifyRequest` on existing local SOAP service. `SIMULATOR_INTERNAL` choices below must never be presented as Behpardakht protocol.
+Goal 6 adds source-backed `bpSettleRequest` on existing local SOAP service. `SIMULATOR_INTERNAL` choices below must never be presented as Behpardakht protocol.
 
 ## Boundaries
 
 ```text
 Client
   -> local SOAP/HTTP boundary (`/api/soap`)
-  -> XML parser / Pay or Verify adapter
+  -> XML parser / Pay, Verify, or Settle adapter
   -> operation application handler
   -> transaction state machine
   -> replaceable in-memory transaction repository
@@ -29,13 +29,15 @@ Future server modules: `src/server/protocol`, `src/server/soap`, `src/server/tra
 
 ## Goal 3 SOAP boundary (`SIMULATOR_INTERNAL` unless stated otherwise)
 
-`src/app/api/soap/route.ts` owns only local HTTP entry. `src/server/soap` bounds body intake, parses XML, applies local SOAP compatibility rules, serializes local SOAP responses/faults, and dispatches only `bpPayRequest` and `bpVerifyRequest`. `src/server/protocol` performs operation application work without HTTP objects.
+`src/app/api/soap/route.ts` owns only local HTTP entry. `src/server/soap` bounds body intake, parses XML, applies local SOAP compatibility rules, serializes local SOAP responses/faults, and dispatches only `bpPayRequest`, `bpVerifyRequest`, and `bpSettleRequest`. `src/server/protocol` performs operation application work without HTTP objects.
 
 SOAP requests use a 64 KiB local body cap. `saxes` is event-driven XML parsing; its installed source confirms it does not fetch a DTD or define extra DTD entities unless caller explicitly does so. This adapter rejects every DTD, accepts no remote resource, uses bounded depth/node counts, and does not log input values. Exact limits and SOAP representation are not Behpardakht facts.
 
 `BpPayRequestHandler` validates source-backed field shape at adapter, creates Goal 2 transaction, assigns one unique opaque local RefId, saves its event-bearing immutable snapshot, then formats success as documented `0,RefId`. It retains only existing Goal 2 transaction correlation data: `terminalId`, `orderId`, `amount`, `callBackUrl`, and local `refId`. It never persists `userPassword`, `userName`, card-related optional values, or raw XML.
 
 `BpVerifyRequestHandler` uses table-2 `terminalId`, `saleOrderId`, and `saleReferenceId` as complete Sale correlation. Verify `orderId` is only source-defined verification-request number: non-unique and permitted to equal `saleOrderId`. A correlated successful Sale is immutably changed to verified through ordered attempt/confirmation events and saved once. It returns source-backed `0`; a subsequent verified call returns `43`. It neither settles nor dispatches callback. Unknown/mismatching correlation and non-modeled states are local faults, not provider codes.
+
+`BpSettleRequestHandler` uses table-3 `terminalId`, `saleOrderId`, and `saleReferenceId` as complete correlation. Settle `orderId` is non-unique settlement-request number, permitted to equal `saleOrderId`, never lookup key. Correlated verified transaction records `SETTLEMENT_REQUESTED` (`via: "SETTLE"`) and source-backed `0`, receipt of settlement request. Sale/Verify remain unchanged; no callback, banking action, or deposit claim. v1.39 lacks Settle-specific nonzero mapping for retry/correlation/pre-Verify outcomes, so rejected states fault without mutation.
 
 ## Goal 4 browser and callback boundaries (`SIMULATOR_INTERNAL`)
 

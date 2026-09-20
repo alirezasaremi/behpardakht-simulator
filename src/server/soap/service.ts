@@ -2,6 +2,8 @@ import { SystemClock, RandomIdentifierGenerator, InMemoryTransactionRepository }
 import {
   BpPayRequestApplicationError,
   BpPayRequestHandler,
+  BpSettleRequestApplicationError,
+  BpSettleRequestHandler,
   BpVerifyRequestApplicationError,
   BpVerifyRequestHandler,
   RandomRefIdGenerator,
@@ -9,7 +11,8 @@ import {
 } from "@/server/protocol";
 import { SoapInputError } from "./errors";
 import { extractBpPayRequest } from "./pay-request";
-import { serializePayResponse, serializeSoapFault, serializeVerifyResponse } from "./response";
+import { serializePayResponse, serializeSettleResponse, serializeSoapFault, serializeVerifyResponse } from "./response";
+import { extractBpSettleRequest } from "./settle-request";
 import { extractBpVerifyRequest } from "./verify-request";
 import { MAX_SOAP_REQUEST_BYTES, parseLocalSoapOperation } from "./xml";
 
@@ -19,11 +22,13 @@ export type LocalSoapServiceDependencies = BpPayRequestHandlerDependencies;
 export class LocalSoapService {
   readonly repository;
   private readonly payRequests: BpPayRequestHandler;
+  private readonly settleRequests: BpSettleRequestHandler;
   private readonly verifyRequests: BpVerifyRequestHandler;
 
   constructor(dependencies: LocalSoapServiceDependencies) {
     this.repository = dependencies.repository;
     this.payRequests = new BpPayRequestHandler(dependencies);
+    this.settleRequests = new BpSettleRequestHandler(dependencies);
     this.verifyRequests = new BpVerifyRequestHandler(dependencies);
   }
 
@@ -39,6 +44,10 @@ export class LocalSoapService {
         const result = this.verifyRequests.execute(extractBpVerifyRequest(operation));
         return xmlResponse(serializeVerifyResponse(result.result), 200);
       }
+      if (operation.name === "bpSettleRequest") {
+        const result = this.settleRequests.execute(extractBpSettleRequest(operation));
+        return xmlResponse(serializeSettleResponse(result.result), 200);
+      }
       throw new SoapInputError("UNSUPPORTED_OPERATION", "Unsupported SOAP operation.");
     } catch (error) {
       if (error instanceof BpPayRequestApplicationError && error.code === "DUPLICATE_PAY_ORDER_ID") {
@@ -50,6 +59,12 @@ export class LocalSoapService {
       if (error instanceof BpVerifyRequestApplicationError) {
         return xmlResponse(
           serializeSoapFault("Client.InvalidVerifyRequest", "Verify request cannot be completed by local simulator."),
+          400,
+        );
+      }
+      if (error instanceof BpSettleRequestApplicationError) {
+        return xmlResponse(
+          serializeSoapFault("Client.InvalidSettleRequest", "Settle request cannot be completed by local simulator."),
           400,
         );
       }

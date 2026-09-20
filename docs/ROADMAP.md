@@ -1,0 +1,16 @@
+# Roadmap
+
+1. Goal 1: foundation, guardrails, docs, tooling.
+2. Goal 2: transaction domain and state model.
+3. Goal 3: SOAP foundation and `bpPayRequest`.
+4. Goal 4: fake payment page and callback.
+5. Goal 5: `bpVerifyRequest`.
+6. Goal 6: `bpSettleRequest`.
+7. Goal 7: `bpInquiryRequest` and `bpReversalRequest`.
+8. Goal 8: `bpVerifySettleRequest`.
+9. Goal 9: deterministic scenario engine.
+10. Goal 10: transport/protocol fault injection.
+11. Goal 11: developer dashboard.
+12. Goal 12+: specialized documented operations: `bpChargePayRequest`, `bpRefundRequest`, `bpRefundRequestV2`, `bpRefundToPANRequest`, `bpDynamicPayRequest`, and `bpCumulativeDynamicPayRequest`.
+
+Initial intended implementation scope is `bpPayRequest`, payment-page redirect, callback, `bpVerifyRequest`, and `bpSettleRequest`; then Inquiry, Reversal, and VerifySettle. This prioritization is `SIMULATOR_INTERNAL`, not a claim all documented methods are MVP operations.

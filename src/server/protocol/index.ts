@@ -1,3 +1,4 @@
+export * from "./cumulative-dynamic-pay-request";
 export * from "./dynamic-pay-request";
 export * from "./inquiry-request";
 export * from "./pay-request";

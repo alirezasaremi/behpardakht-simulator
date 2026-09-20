@@ -13,6 +13,11 @@ export function serializeDynamicPayResponse(result: string): string {
 }
 
 /** SIMULATOR_INTERNAL local SOAP 1.1 response serialization profile. */
+export function serializeCumulativeDynamicPayResponse(result: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="${SOAP_ENVELOPE_NAMESPACE}"><soap:Body><bpCumulativeDynamicPayRequestResponse><bpCumulativeDynamicPayRequestResult>${escapeXml(result)}</bpCumulativeDynamicPayRequestResult></bpCumulativeDynamicPayRequestResponse></soap:Body></soap:Envelope>`;
+}
+
+/** SIMULATOR_INTERNAL local SOAP 1.1 response serialization profile. */
 export function serializeVerifyResponse(result: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="${SOAP_ENVELOPE_NAMESPACE}"><soap:Body><bpVerifyRequestResponse><bpVerifyRequestResult>${escapeXml(result)}</bpVerifyRequestResult></bpVerifyRequestResponse></soap:Body></soap:Envelope>`;
 }

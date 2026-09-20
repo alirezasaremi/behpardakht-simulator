@@ -62,6 +62,13 @@ This inventory does not make every method an MVP. See `ROADMAP.md` for simulator
 - Printed pages 24-28 tables 6-8: Refund request variants, constraints and response examples; final state depends on refund inquiry services not supplied in this PDF.
 - Printed pages 14-20 and 30-31: Charge, redirect-specialized and cumulative Dynamic Pay evidence. See [remaining protocol audit](REMAINING_PROTOCOL_AUDIT.md) for exact inventory and withheld assumptions.
 
+## Goal 13 source locations (`PROTOCOL`)
+
+- Printed pages 24-27, tables 6-7: Refund `0` is initial acceptance only; final result and retry safety require separately documented refund-inquiry services. The separate document is absent from the local official-source inventory.
+- Printed page 18: Charge `additionalData` structure names direct TopUp mobile data or Voucher operator/serial service data. It does not establish safe charge fulfilment.
+- Printed page 20: any `SettleTime` string changes automatic settlement from 180 to 360 minutes, but does not reconcile automatic settlement with explicit Settle or Reversal.
+- Printed pages 10 and 30-31, table 10: exact Cumulative Dynamic Pay operation, fields/types, up-to-ten delimited account/amount/payer triples, total-sum constraint, unique request-number statement, illustrated `0,RefId`, RefId POST, and Pay-like later workflow.
+
 ## Reading rules
 
 Preserve identifiers, case, documented types, response codes, and short required values. Summaries do not establish missing namespaces, WSDL schemas, SOAPAction values, envelopes, serialization, or transport wire details. Record uncertainty rather than extrapolating.

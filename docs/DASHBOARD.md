@@ -17,6 +17,8 @@ Manual **Refresh** fetches current process-memory state. No polling, WebSocket, 
 
 All bigint identifiers are decimal strings. RefId is preserved verbatim and case-sensitive. Callback diagnostics contain only attempt/status/timestamps/failure category/HTTP status; destination URL and callback body are absent. Events contain only `eventId`, timestamp, type, classification, and allowlisted scalar metadata.
 
+`paymentOperation` may identify local `PAY`, `DYNAMIC_PAY`, or `CUMULATIVE_DYNAMIC_PAY` request origin. This safe diagnostic label does not expose Dynamic/Cumulative account distributions, payer identifiers, `additionalData`, credentials, or any provider payout state.
+
 No DTO exposes `userPassword`, any password/credential, raw SOAP, PAN/card fields, PIN, CVV2, OTP, callback URL/body, internal error, or stack. UI uses ordinary text rendering; it never uses HTML injection for metadata.
 
 ## Detail behavior

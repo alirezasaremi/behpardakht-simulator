@@ -12,11 +12,13 @@ Goal 11 adds [local developer dashboard](docs/DASHBOARD.md) at `/local`. It read
 
 Goal 12 audits every remaining v1.39 capability in [remaining protocol audit](docs/protocol/REMAINING_PROTOCOL_AUDIT.md). It adds only safe normal-path `bpDynamicPayRequest`: required table-9 input including `subServiceId`, documented `0,RefId`, then existing local Sale/callback plumbing as `DERIVED` compatibility. It rejects optional mobile/card/identity fields and does not model payout provisioning.
 
+Goal 13 re-audits all remaining PARTIAL candidates. It adds safe normal-path `bpCumulativeDynamicPayRequest`: table-10 fields, one to ten account-id/amount/payer-id triples, bigint distribution-total validation, and documented `0,RefId`. Distribution/account/payer input is discarded; no payout, financial settlement, timer, provider nonzero result, or sensitive mobile/card/identity field is simulated. Refund final status remains blocked because the separately referenced refund-inquiry specification is not present locally. See [Goal 13 note](docs/protocol/GOAL_13_CUMULATIVE_DYNAMIC_PAY_NOTE.md).
+
 Callbacks are blocked by default. For a controlled local receiver, start server with an explicit exact-origin allowlist, for example `SIMULATOR_CALLBACK_ALLOWED_ORIGINS=http://127.0.0.1:4010 npm run dev`. Do not allow arbitrary hosts. No real card information belongs in SOAP, browser forms, logs, or callback payloads.
 
 ## Minimal local walkthrough
 
-1. Send fake `bpPayRequest` or safe normal-path `bpDynamicPayRequest` values to `POST /api/soap` as documented in [SOAP compatibility](docs/protocol/SOAP_COMPATIBILITY.md), then extract `RefId` from `0,RefId`.
+1. Send fake `bpPayRequest`, safe normal-path `bpDynamicPayRequest`, or safe normal-path `bpCumulativeDynamicPayRequest` values to `POST /api/soap` as documented in [SOAP compatibility](docs/protocol/SOAP_COMPATIBILITY.md), then extract `RefId` from `0,RefId`.
 2. Submit a browser form to local endpoint only:
 
 ```html

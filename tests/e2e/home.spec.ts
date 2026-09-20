@@ -28,6 +28,7 @@ test("shows empty local dashboard with local-only notice", async ({ page }) => {
   await page.goto("/local");
   await expect(page.getByRole("heading", { name: "Behpardakht Simulator" })).toBeVisible();
   await expect(page.getByText(/Unofficial local developer tool/i)).toBeVisible();
+  await expect(page.getByText("bpCumulativeDynamicPayRequest (safe normal path)")).toBeVisible();
   await expect(page.getByText(/No local transactions match/i)).toBeVisible();
 });
 

@@ -19,6 +19,7 @@ describe("dashboard presentation", () => {
     expect(await screen.findByText(/No local transactions match/i)).toBeInTheDocument();
     expect(screen.getByText("UNSPECIFIED")).toBeInTheDocument();
     expect(screen.getByText(/Unofficial local developer tool/i)).toBeInTheDocument();
+    expect(screen.getByText("bpCumulativeDynamicPayRequest (safe normal path)")).toBeInTheDocument();
   });
 
   it("shows safe detail labels and scenario/transport explanations", async () => {

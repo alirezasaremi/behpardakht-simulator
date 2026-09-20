@@ -24,6 +24,8 @@ Goal 11 adds dashboard query/route coverage: explicit safe list/detail DTOs, dec
 
 Goal 12 adds source-audit records plus Dynamic Pay coverage: table-9 exact required fields, bigint-safe `subServiceId`, safe optional display fields, rejected mobile/card/identity fields, missing/invalid/extra local input faults, documented `0,RefId`, terminal-wide local duplicate request number across Pay/Dynamic Pay, discarded credentials/sub-service data, local SOAP/HTTP boundary, local lifecycle identity, and safe dashboard projection. No transport/scenario extension is implied.
 
+Goal 13 adds local-source re-audit records plus Cumulative Dynamic Pay coverage: table-10 exact fields, documented one-to-ten comma/semicolon distribution structure, illustrated empty payer-id/terminal semicolon, bigint distribution sums equal to request amount, sensitive-field rejection, zero partial mutation on invalid input, documented `0,RefId`, operation-specific local duplicate Fault, discarded account/payer/credential data, SOAP/HTTP boundary, local lifecycle identity, and dashboard capability visibility. No scenario or transport-fault extension is implied.
+
 ```bash
 npm run lint
 npm run typecheck

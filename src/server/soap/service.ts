@@ -4,6 +4,8 @@ import type { TransportFaultAssignment, TransportFaultEngine, TransportFaultOper
 import {
   BpPayRequestApplicationError,
   BpPayRequestHandler,
+  BpCumulativeDynamicPayRequestHandler,
+  BpCumulativeDynamicPayRequestApplicationError,
   BpDynamicPayRequestHandler,
   BpDynamicPayRequestApplicationError,
   BpInquiryRequestApplicationError,
@@ -21,9 +23,11 @@ import {
 } from "@/server/protocol";
 import { SoapInputError } from "./errors";
 import { extractBpPayRequest } from "./pay-request";
+import { extractBpCumulativeDynamicPayRequest } from "./cumulative-dynamic-pay-request";
 import { extractBpDynamicPayRequest } from "./dynamic-pay-request";
 import {
   serializePayResponse,
+  serializeCumulativeDynamicPayResponse,
   serializeDynamicPayResponse,
   serializeSettleResponse,
   serializeSoapFault,
@@ -51,6 +55,7 @@ const MALFORMED_SOAP_RESPONSE = "<simulator-malformed-soap";
 export class LocalSoapService {
   readonly repository;
   private readonly payRequests: BpPayRequestHandler;
+  private readonly cumulativeDynamicPayRequests: BpCumulativeDynamicPayRequestHandler;
   private readonly dynamicPayRequests: BpDynamicPayRequestHandler;
   private readonly inquiryRequests: BpInquiryRequestHandler;
   private readonly reversalRequests: BpReversalRequestHandler;
@@ -63,6 +68,7 @@ export class LocalSoapService {
   constructor(dependencies: LocalSoapServiceDependencies) {
     this.repository = dependencies.repository;
     this.payRequests = new BpPayRequestHandler(dependencies);
+    this.cumulativeDynamicPayRequests = new BpCumulativeDynamicPayRequestHandler(dependencies);
     this.dynamicPayRequests = new BpDynamicPayRequestHandler(dependencies);
     this.inquiryRequests = new BpInquiryRequestHandler(dependencies);
     this.reversalRequests = new BpReversalRequestHandler(dependencies);
@@ -80,6 +86,10 @@ export class LocalSoapService {
       if (operation.name === "bpPayRequest") {
         const result = this.payRequests.execute(extractBpPayRequest(operation));
         return xmlResponse(serializePayResponse(result.result), 200);
+      }
+      if (operation.name === "bpCumulativeDynamicPayRequest") {
+        const result = this.cumulativeDynamicPayRequests.execute(extractBpCumulativeDynamicPayRequest(operation));
+        return xmlResponse(serializeCumulativeDynamicPayResponse(result.result), 200);
       }
       if (operation.name === "bpDynamicPayRequest") {
         const result = this.dynamicPayRequests.execute(extractBpDynamicPayRequest(operation));
@@ -114,6 +124,12 @@ export class LocalSoapService {
       }
       throw new SoapInputError("UNSUPPORTED_OPERATION", "Unsupported SOAP operation.");
     } catch (error) {
+      if (error instanceof BpCumulativeDynamicPayRequestApplicationError && error.code === "DUPLICATE_CUMULATIVE_DYNAMIC_PAY_ORDER_ID") {
+        return xmlResponse(
+          serializeSoapFault("Client.DuplicateCumulativeDynamicPayOrderId", "Duplicate Cumulative Dynamic Pay orderId is not accepted by local simulator."),
+          409,
+        );
+      }
       if (error instanceof BpDynamicPayRequestApplicationError && error.code === "DUPLICATE_DYNAMIC_PAY_ORDER_ID") {
         return xmlResponse(
           serializeSoapFault("Client.DuplicateDynamicPayOrderId", "Duplicate Dynamic Pay orderId is not accepted by local simulator."),

@@ -7,7 +7,7 @@ export type VerificationState = "NOT_ATTEMPTED" | "ATTEMPTED" | "VERIFIED";
 export type SettlementState = "NOT_REQUESTED" | "REQUESTED";
 export type ReversalState = "NOT_REVERSED" | "REVERSED";
 /** SIMULATOR_INTERNAL local request categories based on documented operation names. */
-export type PaymentOperation = "PAY" | "DYNAMIC_PAY";
+export type PaymentOperation = "PAY" | "DYNAMIC_PAY" | "CUMULATIVE_DYNAMIC_PAY";
 
 export type LifecycleState =
   | "AWAITING_SALE"

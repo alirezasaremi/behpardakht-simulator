@@ -19,6 +19,7 @@ Page references below are printed PDF pages. `DOCUMENTED / PROTOCOL` means direc
 | `bpInquiryRequest` | pp. 22-23, table 4 | Exact parsing/correlation; local fault because no operation-specific code is supplied. |
 | `bpReversalRequest` | pp. 23-24, table 5 | Exact parsing/correlation; local fault because success/state/result is not supplied. |
 | `bpVerifySettleRequest` | pp. 31-32, table 12; table 11 | Atomic local lifecycle representation; `0`/`43`/`45`/`48` only from direct retry wording. |
+| `bpCumulativeDynamicPayRequest` | pp. 10, 30-31; table 10 | Safe normal-path parser, bigint distribution-total validation, documented `0,RefId`, and local opaque RefId. |
 | Semantic scenarios, transport faults, dashboard | no provider assertion | Bounded `SIMULATOR_SCENARIO`/`SIMULATOR_INTERNAL` tooling from Goals 9-11. |
 
 ## Remaining operation inventory and evidence
@@ -57,7 +58,7 @@ Page references below are printed PDF pages. `DOCUMENTED / PROTOCOL` means direc
 | `bpRefundRequestV2` | `BLOCKED` | Same missing refund inquiry plus alternate PAN/mobile identity matching. |
 | `bpRefundToPANRequest` | `BLOCKED` | Raw PAN is a principal input; its final/refund lifecycle and amount/precondition rules are incomplete. |
 | `bpDynamicPayRequest` | `READY` | Exact operation name, fields/types, unique order rule, `0,RefId` success, RefId POST and Pay-like following workflow are documented. A safe normal path can reject optional sensitive fields and does not require extra durable account/payment data. |
-| `bpCumulativeDynamicPayRequest` | `PARTIAL` | Request table and broad distribution grammar exist, but exact multi-item parser/validation and payer-identifier handling are incomplete. It is larger than needed for first dynamic slice. |
+| `bpCumulativeDynamicPayRequest` | `SAFE_PARTIAL` | Goal 13 re-check found direct delimiters, up-to-ten entry maximum, illustrated empty payer-id/terminal semicolon, total-sum rule, normal response, and Pay-like later workflow. Bounded canonical parsing is useful without provider payout or lexical-completeness claims. |
 | StartPay `SettleTime` | `PARTIAL` | Timing fact exists, but provider settlement/reversal interaction is incomplete; Goal 12 must not create timer-driven behavior. |
 | StartPay PAN/profile/auth features | `BLOCKED` | They require card, identity, mobile, encryption/key, or credential handling prohibited by project security rules. |
 | Iranian-goods credit product | `OUT_OF_SCOPE_FOR_CORE_SIMULATOR` | Product-specific request/callback contract belongs in a separate specialized flow. |
@@ -114,3 +115,34 @@ Printed pages 9-10 say Dynamic Pay is functionally similar to `bpPayRequest` exc
 | `subServiceId` | required long | accepted bigint | discarded; absent |
 
 Rejecting optional sensitive fields preserves required normal-path shape: all table-9 required fields, including `subServiceId`, remain accepted. `panHiddenMode` and `cartItem` remain accepted then discarded.
+
+## Goal 13 decision
+
+### Local official-source inventory
+
+Inspected official source: `Mellat PGW_Tech Doc_ver 1.39_Fa.pdf`, stored at `../_Doc/` beside this repository (the identical `Downloads/` copy has SHA-256 `aed59fc9370bcd2fafa42ee5e80a4083020842532ec207129e9903d3847e3e3e`). PDF metadata title is *User Guide: Internet Payment Gateway Functions and Methods*, Behpardakht Mellat; headers identify version 1.39 / Azar 1404; 38 pages. It is official/source-authoritative because it is the supplied document named by project guardrails and identifies itself as Behpardakht Mellat technical guidance.
+
+No other official Behpardakht PDF is present in `../_Doc/` or repository/reference scope. In particular, the separate refund-inquiry document named on printed pages 25-27 is absent. No web source was used.
+
+### Candidate re-audit
+
+| Candidate | Goal 13 classification | Direct evidence and decision |
+| --- | --- | --- |
+| `bpRefundRequest` | `BLOCKED` | Printed pp. 24-25/table 6: required `terminalId`, `userName`, `userPassword`, unique refund `orderId`, `saleOrderId`, `saleReferenceId`, `refundAmount` (all numeric identifiers/amounts are `long` except strings). Full/partial refund permitted only after purchase settled and `bpSettleRequest`; sum cannot exceed original amount. Response is `ResCode,tracking-number`; `0` means *initial acceptance*, not returned money. Timeout/nonzero and `pending` explicitly require refund-inquiry services before retry/final-state decision. Those services' operation, request, result, timing, correlation and state contract are absent. No accepted/pending slice is implemented: tracking/reference semantics and safe final resolution would still be unusable and misleading. |
+| `bpChargePayRequest` | `DEFER` | Printed pp. 14-18/table 1: same request fields/types as Pay, normal `0,RefId`, then RefId POST. Printed p. 18 mandates `additionalData = Charge Type, Charge Data`: type `1` direct TopUp with `MobileNumber`, or type `2` Voucher with `Operator Code,Voucher Serial`; codes 1/2/6/7 are listed. Provider charge fulfilment, mobile/voucher validation, charge-specific results, retries and final state are unspecified. Direct service data intake is not selected. |
+| `bpCumulativeDynamicPayRequest` | `SAFE_PARTIAL`, selected | Printed p. 10 says Pay-like confirmation, settlement, reversal and inquiry. Printed pp. 30-31/table 10 establishes `terminalId` long, `userName` string, `userPassword` string, `orderId` long, `amount` long, `localDate` string, `localTime` string, `additionalData` string, `callBackUrl` string; optional `mobileNo`, `encPan`, `panHiddenMode`, `cartItem`, `enc`. `additionalData` has up to ten account-id/amount/payer-id triples, comma-delimited within and semicolon-delimited between triples; example includes empty payer-id and terminal semicolon; total equals distribution sum. Normal `0,RefId`, RefId POST, unique request number and case-sensitive RefId are explicit. Account authorization/provisioning, full lexical grammar, negative/zero policy, nonzero results, retry/timing and payout execution are unspecified. |
+| StartPay `SettleTime` | `DEFER` | Printed p. 20: POSTing RefId plus any string `SettleTime` changes automatic settlement from default 180 minutes to 360. Default successful transactions without a Reversal or Settle request get merchant-behalf settlement after 180 minutes. Source does not define interaction with explicit `bpSettleRequest`, `bpVerifySettleRequest`, Reversal's three-hour/end-of-day statements, completed deposit, or retry. No hidden/background timer or clock-triggered state transition is added. |
+
+`bpRefundRequestV2` remains `BLOCKED`: pp. 25-27/table 7 adds optional `destinationPAN` and `mobileNo`, both required for alternate-card refund, with card/mobile ownership checking plus the missing inquiry dependency. `bpRefundToPANRequest` remains `BLOCKED`: pp. 27-28/table 8 accepts raw PAN or `SaleReferenceId` (exactly one), and may accept mobile information. Both violate the simulator's credential/card boundary and lack final lifecycle evidence.
+
+### Selected slice and local boundary
+
+`bpCumulativeDynamicPayRequest` is the only Goal 13 implementation. Its table-10 normal path parses one through ten triples, accepts the illustrated empty payer-id and one terminal semicolon, parses ASCII decimal distribution amounts as bigint, and requires their sum to equal request `amount`. Invalid local grammar causes a local SOAP validation Fault with zero transaction creation; this does not assert provider rejection. Valid input creates existing Pay-family state with `paymentOperation: "CUMULATIVE_DYNAMIC_PAY"`, emits existing `TRANSACTION_CREATED` and `REF_ID_ASSIGNED` events only, and returns normal `0,RefId`.
+
+`DOCUMENTED / PROTOCOL`: table-10 shape, delimiters, count, sum constraint, success response, RefId POST, request uniqueness statement, and high-level Pay-like workflow. `DERIVED`: reuse of local StartPay/Sale/callback/later-operation plumbing. `SIMULATOR_INTERNAL`: canonical parser, local Faults, terminal-wide Pay-family uniqueness, opaque RefId, domain record and dashboard label. `SIMULATOR_SCENARIO`: none added. `UNSPECIFIED`: WSDL/wire details, credentials, account authorization, provider result mappings, true payout/settlement, timing, and unlisted lexical cases.
+
+All `mobileNo`, `encPan`, and `enc` inputs reject locally. PAN, destination PAN, mobile data, PIN, CVV2, OTP, credentials, encryption/key material, `additionalData`, account identifiers and payer identifiers are never stored, logged, rendered, added to events, or returned by dashboard DTOs. `userName`/`userPassword`, `panHiddenMode`, and `cartItem` are structural inputs then discarded.
+
+### Goal 14 recommendation
+
+Do not add a payment capability until a source-grounded decision is possible. Highest-value prerequisite is obtaining the official refund-transaction inquiry specification referenced by v1.39; only then re-audit a bounded Refund accepted/pending/final-state model. Keep Charge, SettleTime, PAN/profile/authentication and specialized credit-product work deferred.

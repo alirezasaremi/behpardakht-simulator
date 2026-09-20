@@ -23,7 +23,7 @@ Page 22 establishes settlement for verified transactions. It gives no Settle-spe
 
 Correlated successful Sale plus confirmed Verify appends `SETTLEMENT_REQUESTED` with `via: "SETTLE"`, preserves Sale `SUCCEEDED` and Verify `VERIFIED`, sets settlement `REQUESTED`. This records accepted Settle lifecycle request, not banking ledger, proof of deposit, or real money movement. No callback.
 
-Rejected correlation, pre-Verify, repeated Settle, malformed, and invalid requests save no event/snapshot. Source does not establish their provider codes; local SOAP Fault. No real credentials, auto-settlement, timers, workers, refund, or VerifySettle.
+Rejected correlation, pre-Verify, repeated Settle, malformed, and invalid requests save no event/snapshot. Source does not establish their provider codes; local SOAP Fault. No real credentials, auto-settlement, timers, workers, or refund.
 
 ## Provider response audit
 
@@ -36,3 +36,7 @@ No nonzero Behpardakht response code returns from `bpSettleRequest` in Goal 6.
 ## Timing and reversal (`PROTOCOL`, not implemented)
 
 Printed page 20: successful transactions without merchant reversal/settlement request settle on merchant behalf after three hours (180 minutes). StartPay `RefId` plus any string `SettleTime` changes settlement time to six hours (360 minutes). Page 22 separately describes merchant-requested Settle; it does not define how automatic rules change Settle outcomes. Page 24 Reversal note says no settlement request for end-of-day reversal. Goal 7 rejects local settlement-requested Reversal but does not infer inverse `Reversed -> Settle` provider rule; no timer, `SettleTime` intake, or auto-action exists.
+
+## VerifySettle interaction
+
+Page 32 explicitly names previously settled as `bpVerifySettleRequest` retry outcome; table 11 maps it to `45`. Goal 8 returns `45` from combined VerifySettle after separate Settle or combined success, without mutation. This does not alter Goal 6: repeated `bpSettleRequest` remains local fault because page 22 does not tie `45` to its retry.

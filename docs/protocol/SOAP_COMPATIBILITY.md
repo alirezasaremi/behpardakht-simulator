@@ -10,6 +10,7 @@ This profile makes a local development simulator usable. It is not a claim of pr
 - Printed pages 14-17: successful Pay result example `0, AF82041a2Bf6989c7fF9`; first component is `ResCode`, second is case-sensitive `RefId`; Pay `orderId` must be unique and duplicate request returns an error.
 - Printed page 36: table 11 labels `41` “duplicate request number.” PDF does not explicitly connect this row to duplicate Pay `orderId`.
 - Printed page 22 table 3: `bpSettleRequest` exact fields/types; its `0` is successful receipt of settlement request. Settle `orderId` need not be unique and may equal `saleOrderId`.
+- Printed pages 31-32 table 12: `bpVerifySettleRequest` exact fields/types; its source-specific retry prose plus table 11 establish `0`, `43`, `45`, and `48`. VerifySettle `orderId` need not be unique and may equal `saleOrderId`.
 - Printed pages 23-24 tables 4-5: `bpInquiryRequest` / `bpReversalRequest` exact fields/types; each returns response-code string and its `orderId` need not be unique and may equal `saleOrderId`.
 
 ## Still unspecified by v1.39
@@ -20,9 +21,9 @@ PDF does not supply WSDL schema contents, XML namespaces, SOAP version/envelope 
 
 - Endpoint: `POST /api/soap`; never production host or proxy.
 - SOAP version: SOAP 1.1 envelope namespace `http://schemas.xmlsoap.org/soap/envelope/`.
-- Envelope: one SOAP `Body`, one direct operation element. Optional operation namespace/prefix is ignored; local element name must be exactly `bpPayRequest`, `bpVerifyRequest`, `bpSettleRequest`, `bpInquiryRequest`, or `bpReversalRequest`.
-- Supported operations: only `bpPayRequest`, `bpVerifyRequest`, `bpSettleRequest`, `bpInquiryRequest`, `bpReversalRequest`.
-- Response: SOAP 1.1 envelope containing matching local `Response` / `Result` wrappers. Pay success is documented `0,RefId`; other audits are [VERIFY.md](VERIFY.md), [SETTLE.md](SETTLE.md), [INQUIRY.md](INQUIRY.md), and [REVERSAL.md](REVERSAL.md).
+- Envelope: one SOAP `Body`, one direct operation element. Optional operation namespace/prefix is ignored; local element name must be exactly `bpPayRequest`, `bpVerifyRequest`, `bpSettleRequest`, `bpVerifySettleRequest`, `bpInquiryRequest`, or `bpReversalRequest`.
+- Supported operations: only `bpPayRequest`, `bpVerifyRequest`, `bpSettleRequest`, `bpVerifySettleRequest`, `bpInquiryRequest`, `bpReversalRequest`.
+- Response: SOAP 1.1 envelope containing matching local `Response` / `Result` wrappers. Pay success is documented `0,RefId`; other audits are [VERIFY.md](VERIFY.md), [SETTLE.md](SETTLE.md), [VERIFY_SETTLE.md](VERIFY_SETTLE.md), [INQUIRY.md](INQUIRY.md), and [REVERSAL.md](REVERSAL.md).
 - Faults: malformed/unsupported/structurally invalid input returns HTTP 400 local SOAP `Fault`, not Behpardakht `ResCode`. Internal failures return generic HTTP 500 local SOAP `Fault`.
 - Duplicate `(terminalId, orderId)`: terminal-scoped uniqueness is preserved. Local service returns HTTP 409 SOAP Fault `Client.DuplicatePayOrderId`; this is not Behpardakht `41` or any provider response code.
 - No SOAPAction requirement is enforced because v1.39 does not define one.
@@ -64,4 +65,4 @@ curl --request POST http://localhost:3000/api/soap \
 XML
 ```
 
-Response contains local SOAP wrapper and `bpPayRequestResult` text `0,<local RefId>`. Goal 4 can then POST that RefId to local `/local/start-pay`; it has fake outcomes/callback only. After successful Sale, Goal 5 accepts Verify; after Verify `0`, Goal 6 accepts Settle table-3 fields and returns `0` for received request. Goal 7 parses/correlates table-4 Inquiry and table-5 Reversal, then faults locally because v1.39 supplies no operation-specific result mapping. Refund, VerifySettle, and scenario engine remain unimplemented.
+Response contains local SOAP wrapper and `bpPayRequestResult` text `0,<local RefId>`. Goal 4 can then POST that RefId to local `/local/start-pay`; it has fake outcomes/callback only. After successful Sale, Goal 5 accepts Verify; after Verify `0`, Goal 6 accepts Settle table-3 fields and returns `0` for received request. Goal 8 accepts table-12 VerifySettle with source-backed `0`/`43`/`45`/`48` results. Goal 7 parses/correlates table-4 Inquiry and table-5 Reversal, then faults locally because v1.39 supplies no operation-specific result mapping. Refund and scenario engine remain unimplemented.

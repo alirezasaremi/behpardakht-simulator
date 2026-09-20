@@ -5,7 +5,7 @@ import {
   SequenceIdentifierGenerator,
 } from "@/server/transactions";
 import type { RefIdGenerator } from "@/server/protocol";
-import { recordSaleSucceeded, recordVerifyAttempted } from "@/server/transactions";
+import { recordReversalCompleted, recordSaleSucceeded, recordVerifyAttempted } from "@/server/transactions";
 import { MAX_SOAP_REQUEST_BYTES } from "./xml";
 import { createLocalSoapService } from "./service";
 
@@ -93,6 +93,21 @@ function settleXml(overrides: Record<string, string> = {}): string {
   return `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><bpSettleRequest>${Object.entries(fields)
     .map(([name, value]) => `<${name}>${value}</${name}>`)
     .join("")}</bpSettleRequest></soap:Body></soap:Envelope>`;
+}
+
+function verifySettleXml(overrides: Record<string, string> = {}): string {
+  const fields = {
+    terminalId: "9007199254740993",
+    userName: "local-merchant",
+    userPassword: "fake-test-password",
+    orderId: "9007199254740995",
+    saleOrderId: "9007199254740995",
+    saleReferenceId: "9007199254740999",
+    ...overrides,
+  };
+  return `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><bpVerifySettleRequest>${Object.entries(fields)
+    .map(([name, value]) => `<${name}>${value}</${name}>`)
+    .join("")}</bpVerifySettleRequest></soap:Body></soap:Envelope>`;
 }
 
 function inquiryXml(overrides: Record<string, string> = {}): string {
@@ -347,6 +362,108 @@ describe("LocalSoapService", () => {
       expect(body).not.toContain("<bpSettleRequestResult>");
     }
     expect(repository.getById(sold.id)).toEqual(sold);
+  });
+
+  it("runs Pay-to-Sale-to-VerifySettle atomically through local SOAP without callback dispatch", async () => {
+    const { repository, service } = createService();
+    await service.handle(request(payXml()));
+    const paid = repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) {
+      throw new Error("Pay fixture did not create transaction.");
+    }
+    const sold = repository.save(recordSaleSucceeded(
+      paid,
+      { refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999") },
+      new ManualClock(new Date("2026-01-01T00:00:01.000Z")),
+      new SequenceIdentifierGenerator(),
+    ));
+
+    const combined = await service.handle(request(verifySettleXml()));
+    const combinedBody = await combined.text();
+    const repeated = await service.handle(request(verifySettleXml()));
+
+    // PROTOCOL: page 32 explicitly makes 0/previously settled retry outcomes VerifySettle results; table 11 maps settled to 45.
+    expect(combined.status).toBe(200);
+    expect(combinedBody).toContain("<bpVerifySettleRequestResponse>");
+    expect(combinedBody).toContain("<bpVerifySettleRequestResult>0</bpVerifySettleRequestResult>");
+    expect(await repeated.text()).toContain("<bpVerifySettleRequestResult>45</bpVerifySettleRequestResult>");
+    expect(repository.getById(sold.id)).toMatchObject({
+      saleState: "SUCCEEDED",
+      verificationState: "VERIFIED",
+      settlementState: "REQUESTED",
+    });
+    expect(repository.getById(sold.id)?.events.map((event) => event.type)).toEqual([
+      "TRANSACTION_CREATED",
+      "REF_ID_ASSIGNED",
+      "SALE_SUCCEEDED",
+      "SETTLEMENT_REQUESTED",
+    ]);
+    expect(repository.getById(sold.id)?.events.at(-1)).toMatchObject({ via: "VERIFY_SETTLE" });
+    expect(repository.getById(sold.id)?.events.filter((event) => event.type.startsWith("CALLBACK_DISPATCH"))).toHaveLength(0);
+  });
+
+  it("returns VerifySettle's documented known-state results without changing those states", async () => {
+    const { repository, service } = createService();
+    await service.handle(request(payXml()));
+    const verified = repository.getByRefId("LocalRef-Aa1");
+    if (verified === undefined) {
+      throw new Error("Pay fixture did not create transaction.");
+    }
+    const sold = repository.save(recordSaleSucceeded(
+      verified,
+      { refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999") },
+      new ManualClock(new Date("2026-01-01T00:00:01.000Z")),
+      new SequenceIdentifierGenerator(),
+    ));
+    await service.handle(request(verifyXml()));
+    const beforeVerified = repository.getById(sold.id);
+    const afterVerify = await service.handle(request(verifySettleXml()));
+    expect(await afterVerify.text()).toContain("<bpVerifySettleRequestResult>43</bpVerifySettleRequestResult>");
+    expect(repository.getById(sold.id)).toEqual(beforeVerified);
+
+    await service.handle(request(settleXml()));
+    const beforeSettled = repository.getById(sold.id);
+    const afterSettle = await service.handle(request(verifySettleXml()));
+    expect(await afterSettle.text()).toContain("<bpVerifySettleRequestResult>45</bpVerifySettleRequestResult>");
+    expect(repository.getById(sold.id)).toEqual(beforeSettled);
+  });
+
+  it("returns VerifySettle reversed result and faults malformed/correlation failures without mutation", async () => {
+    const { repository, service } = createService();
+    await service.handle(request(payXml()));
+    const paid = repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) {
+      throw new Error("Pay fixture did not create transaction.");
+    }
+    const clock = new ManualClock(new Date("2026-01-01T00:00:01.000Z"));
+    const identifiers = new SequenceIdentifierGenerator();
+    const reversed = repository.save(recordReversalCompleted(
+      recordVerifyAttempted(recordSaleSucceeded(
+        paid,
+        { refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999") },
+        clock,
+        identifiers,
+      ), clock, identifiers),
+      clock,
+      identifiers,
+    ));
+    const before = repository.getById(reversed.id);
+
+    // PROTOCOL: page 32 names previous reversal for VerifySettle; table 11 maps it to 48.
+    const reversedResponse = await service.handle(request(verifySettleXml()));
+    expect(await reversedResponse.text()).toContain("<bpVerifySettleRequestResult>48</bpVerifySettleRequestResult>");
+    expect(repository.getById(reversed.id)).toEqual(before);
+
+    const malformed = await service.handle(request(verifySettleXml({ saleOrderId: "not-a-long" })));
+    const mismatched = await service.handle(request(verifySettleXml({ saleReferenceId: "1" })));
+    for (const response of [malformed, mismatched]) {
+      const body = await response.text();
+      expect(response.status).toBe(400);
+      expect(body).toContain("<soap:Fault>");
+      expect(body).not.toContain("fake-test-password");
+      expect(body).not.toContain("<bpVerifySettleRequestResult>");
+    }
+    expect(repository.getById(reversed.id)).toEqual(before);
   });
 
   it("faults Inquiry without inventing provider result or ATTEMPTED-only eligibility", async () => {

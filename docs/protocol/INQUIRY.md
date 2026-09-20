@@ -15,3 +15,7 @@ No provider response result is currently source-backed. Fully correlated request
 ## Provider response audit
 
 `0` is **GLOBAL only**: table 11 says transaction completed successfully, but Inquiry section has no operation-specific `0`, example, or lifecycle mapping. Goal 7 returns no Behpardakht code from Inquiry.
+
+## VerifySettle interaction
+
+Goal 8 does not change Inquiry. VerifySettle-specific results cannot be inferred for Inquiry, whose section still supplies no operation-specific result mapping.

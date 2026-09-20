@@ -2,14 +2,14 @@
 
 ## Status
 
-Goal 7 adds source-constrained `bpInquiryRequest` and `bpReversalRequest` on existing local SOAP service. `SIMULATOR_INTERNAL` choices below must never be presented as Behpardakht protocol.
+Goal 8 adds source-constrained `bpVerifySettleRequest` on existing local SOAP service. `SIMULATOR_INTERNAL` choices below must never be presented as Behpardakht protocol.
 
 ## Boundaries
 
 ```text
 Client
   -> local SOAP/HTTP boundary (`/api/soap`)
-  -> XML parser / Pay, Verify, Settle, Inquiry, or Reversal adapter
+  -> XML parser / Pay, Verify, Settle, VerifySettle, Inquiry, or Reversal adapter
   -> operation application handler
   -> transaction state machine
   -> replaceable in-memory transaction repository
@@ -29,7 +29,7 @@ Future server modules: `src/server/protocol`, `src/server/soap`, `src/server/tra
 
 ## Goal 3 SOAP boundary (`SIMULATOR_INTERNAL` unless stated otherwise)
 
-`src/app/api/soap/route.ts` owns only local HTTP entry. `src/server/soap` bounds body intake, parses XML, applies local SOAP compatibility rules, serializes local SOAP responses/faults, and dispatches only `bpPayRequest`, `bpVerifyRequest`, `bpSettleRequest`, `bpInquiryRequest`, and `bpReversalRequest`. `src/server/protocol` performs operation application work without HTTP objects.
+`src/app/api/soap/route.ts` owns only local HTTP entry. `src/server/soap` bounds body intake, parses XML, applies local SOAP compatibility rules, serializes local SOAP responses/faults, and dispatches only `bpPayRequest`, `bpVerifyRequest`, `bpSettleRequest`, `bpVerifySettleRequest`, `bpInquiryRequest`, and `bpReversalRequest`. `src/server/protocol` performs operation application work without HTTP objects.
 
 SOAP requests use a 64 KiB local body cap. `saxes` is event-driven XML parsing; its installed source confirms it does not fetch a DTD or define extra DTD entities unless caller explicitly does so. This adapter rejects every DTD, accepts no remote resource, uses bounded depth/node counts, and does not log input values. Exact limits and SOAP representation are not Behpardakht facts.
 
@@ -38,6 +38,8 @@ SOAP requests use a 64 KiB local body cap. `saxes` is event-driven XML parsing; 
 `BpVerifyRequestHandler` uses table-2 `terminalId`, `saleOrderId`, and `saleReferenceId` as complete Sale correlation. Verify `orderId` is only source-defined verification-request number: non-unique and permitted to equal `saleOrderId`. A correlated successful Sale is immutably changed to verified through ordered attempt/confirmation events and saved once. It returns source-backed `0`; a subsequent verified call returns `43`. It neither settles nor dispatches callback. Unknown/mismatching correlation and non-modeled states are local faults, not provider codes.
 
 `BpSettleRequestHandler` uses table-3 `terminalId`, `saleOrderId`, and `saleReferenceId` as complete correlation. Settle `orderId` is non-unique settlement-request number, permitted to equal `saleOrderId`, never lookup key. Correlated verified transaction records `SETTLEMENT_REQUESTED` (`via: "SETTLE"`) and source-backed `0`, receipt of settlement request. Sale/Verify remain unchanged; no callback, banking action, or deposit claim. v1.39 lacks Settle-specific nonzero mapping for retry/correlation/pre-Verify outcomes, so rejected states fault without mutation.
+
+`BpVerifySettleRequestHandler` uses table-12 `terminalId`, `saleOrderId`, and `saleReferenceId` as complete correlation. VerifySettle `orderId` is non-unique, may equal `saleOrderId`, and is never lookup key. Source directly names its `0`/previously-verified/settled/reversed results; table 11 maps named states to `0`/`43`/`45`/`48`. Successful combined request makes one immutable snapshot with Verify `VERIFIED`, settlement `REQUESTED`, and event `SETTLEMENT_REQUESTED` (`via: "VERIFY_SETTLE"`). It does not record separate merchant Verify/Settle calls, dispatch callback, perform banking, or claim deposit.
 
 `BpInquiryRequestHandler` uses table-4 complete correlation. Inquiry `orderId` is non-unique and may equal `saleOrderId`; it is never lookup key. Source purpose does not make internal `ATTEMPTED` provider eligibility. Source names response-code string but no operation-specific result, so fully correlated calls fault locally with no event, status object, or lifecycle mutation.
 
@@ -58,6 +60,8 @@ SOAP requests use a 64 KiB local body cap. `saxes` is event-driven XML parsing; 
 Four constrained axes model lifecycle facts: Sale (`PENDING`, `SUCCEEDED`, `NON_SUCCESS`), verification (`NOT_ATTEMPTED`, `ATTEMPTED`, `VERIFIED`), settlement (`NOT_REQUESTED`, `REQUESTED`), and reversal (`NOT_REVERSED`, `REVERSED`). Derived `lifecycleState` gives diagnostics a single current label. `NON_SUCCESS` deliberately is not final failure: v1.39 documents a Verify path after nonzero callback `ResCode`. Axes are necessary because an unresolved Verify attempt is materially different from a confirmed Verify, while Inquiry does not itself create a known provider state.
 
 Every accepted transition returns a new immutable snapshot and appends a typed event. Goal 4 adds `SALE_SUCCEEDED`/`SALE_NON_SUCCESS` correlation values plus callback attempted/succeeded/failed diagnostics. Callback transport failure never changes Sale. Unresolved verification permits repeated `VERIFY_ATTEMPTED` events, matching documented Verify retry direction; a confirmed, settled, or reversed transaction rejects another attempt. Inquiry/Reversal SOAP faults add no events. `REVERSED` is internal known-state representation, not Reversal SOAP success. Domain errors are simulator-internal and never Behpardakht response codes. No timer execution, automatic settlement, or automatic reversal exists.
+
+Goal 8 combined success changes verification and settlement in one snapshot, with one `SETTLEMENT_REQUESTED` event marked `via: "VERIFY_SETTLE"`; this is simulator-internal history and does not claim separate merchant calls.
 
 The replaceable `TransactionRepository` has an in-memory implementation. It enforces documented Pay `orderId` uniqueness within `terminalId` context and supports lookup by simulator ID, Pay correlation, `refId`, and later-operation correlation (`terminalId`, `saleOrderId`, `saleReferenceId`). `bigint` preserves `long` values internally; it is not a wire-serialization decision.
 

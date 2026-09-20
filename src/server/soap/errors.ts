@@ -8,7 +8,8 @@ export type SoapInputErrorCode =
   | "INVALID_PAY_REQUEST"
   | "INVALID_REVERSAL_REQUEST"
   | "INVALID_SETTLE_REQUEST"
-  | "INVALID_VERIFY_REQUEST";
+  | "INVALID_VERIFY_REQUEST"
+  | "INVALID_VERIFY_SETTLE_REQUEST";
 
 /** SIMULATOR_INTERNAL local transport/validation error; never a provider ResCode. */
 export class SoapInputError extends Error {

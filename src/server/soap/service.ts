@@ -10,16 +10,25 @@ import {
   BpSettleRequestHandler,
   BpVerifyRequestApplicationError,
   BpVerifyRequestHandler,
+  BpVerifySettleRequestApplicationError,
+  BpVerifySettleRequestHandler,
   RandomRefIdGenerator,
   type BpPayRequestHandlerDependencies,
 } from "@/server/protocol";
 import { SoapInputError } from "./errors";
 import { extractBpPayRequest } from "./pay-request";
-import { serializePayResponse, serializeSettleResponse, serializeSoapFault, serializeVerifyResponse } from "./response";
+import {
+  serializePayResponse,
+  serializeSettleResponse,
+  serializeSoapFault,
+  serializeVerifyResponse,
+  serializeVerifySettleResponse,
+} from "./response";
 import { extractBpInquiryRequest } from "./inquiry-request";
 import { extractBpReversalRequest } from "./reversal-request";
 import { extractBpSettleRequest } from "./settle-request";
 import { extractBpVerifyRequest } from "./verify-request";
+import { extractBpVerifySettleRequest } from "./verify-settle-request";
 import { MAX_SOAP_REQUEST_BYTES, parseLocalSoapOperation } from "./xml";
 
 export type LocalSoapServiceDependencies = BpPayRequestHandlerDependencies;
@@ -32,6 +41,7 @@ export class LocalSoapService {
   private readonly reversalRequests: BpReversalRequestHandler;
   private readonly settleRequests: BpSettleRequestHandler;
   private readonly verifyRequests: BpVerifyRequestHandler;
+  private readonly verifySettleRequests: BpVerifySettleRequestHandler;
 
   constructor(dependencies: LocalSoapServiceDependencies) {
     this.repository = dependencies.repository;
@@ -40,6 +50,7 @@ export class LocalSoapService {
     this.reversalRequests = new BpReversalRequestHandler(dependencies);
     this.settleRequests = new BpSettleRequestHandler(dependencies);
     this.verifyRequests = new BpVerifyRequestHandler(dependencies);
+    this.verifySettleRequests = new BpVerifySettleRequestHandler(dependencies);
   }
 
   async handle(request: Request): Promise<Response> {
@@ -57,6 +68,10 @@ export class LocalSoapService {
       if (operation.name === "bpSettleRequest") {
         const result = this.settleRequests.execute(extractBpSettleRequest(operation));
         return xmlResponse(serializeSettleResponse(result.result), 200);
+      }
+      if (operation.name === "bpVerifySettleRequest") {
+        const result = this.verifySettleRequests.execute(extractBpVerifySettleRequest(operation));
+        return xmlResponse(serializeVerifySettleResponse(result.result), 200);
       }
       if (operation.name === "bpInquiryRequest") {
         this.inquiryRequests.execute(extractBpInquiryRequest(operation));
@@ -81,6 +96,12 @@ export class LocalSoapService {
       if (error instanceof BpSettleRequestApplicationError) {
         return xmlResponse(
           serializeSoapFault("Client.InvalidSettleRequest", "Settle request cannot be completed by local simulator."),
+          400,
+        );
+      }
+      if (error instanceof BpVerifySettleRequestApplicationError) {
+        return xmlResponse(
+          serializeSoapFault("Client.InvalidVerifySettleRequest", "VerifySettle request cannot be completed by local simulator."),
           400,
         );
       }

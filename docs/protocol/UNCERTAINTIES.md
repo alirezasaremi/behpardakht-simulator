@@ -44,4 +44,10 @@ This ledger prevents simulator invention. `DOCUMENTED` means direct v1.39 statem
 | UNSPECIFIED | Relationship between Reversal three-hour-after-Verify and end-of-current-day/no-settlement statements | Printed page 23 states three hours after Verify; page 24 separately states end of current day if no settlement request. Goal 7 records both and enforces neither deadline. |
 | UNSPECIFIED | Reversal credential authentication semantics | Table 5 lists terminal/user/password but does not establish local credential acceptance/storage behavior. Goal 7 accepts fake structural input and never persists/logs password. |
 
+| DOCUMENTED | VerifySettle contract, request-number semantics, and known-state results | Printed pages 31-32 table 12 names fields/types; `orderId` need not be unique and may equal `saleOrderId`. Page 32 names VerifySettle success and prior Verify/Settle/Reversal retry outcomes; table 11 maps them to `0`/`43`/`45`/`48`. |
+| SIMULATOR_DECISION | Atomic VerifySettle lifecycle/event representation | Goal 8 uses one immutable save to mark verified plus settlement requested, with one `SETTLEMENT_REQUESTED` event marked `via: "VERIFY_SETTLE"`; no false separate merchant SOAP events. |
+| UNSPECIFIED | VerifySettle after non-success Sale, unresolved separate Verify, missing callback, or callback transport failure | Pages 31-32 describe successful-Sale/callback workflow but do not map these states to a VerifySettle result. Goal 8 returns local no-mutation SOAP Fault. |
+| UNSPECIFIED | VerifySettle credential authentication and exact wire grammar | Table 12 supplies fields/types but no local credential-acceptance, WSDL schema, envelope, or serialization rule. Fake credentials are structural input only and never persist/log. |
+| UNSPECIFIED | VerifySettle 20-minute automatic-reversal execution | Page 32 states 20 minutes after successful Sale without VerifySettle triggers automatic reversal request and returned funds, but gives no simulator mechanism. Goal 8 implements no timer, worker, request-time reversal, or scenario. |
+
 Add discoveries with source page and classification before code depends on them.

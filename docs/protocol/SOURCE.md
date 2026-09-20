@@ -49,6 +49,12 @@ This inventory does not make every method an MVP. See `ROADMAP.md` for simulator
 - Printed pages 23-24, tables 4-5: exact Inquiry/Reversal fields/types, response-code-string returns, non-unique request `orderId` permitted equal to `saleOrderId`, Inquiry purpose, Reversal-after-Verify purpose, three-hour reverse announcement, and end-of-current-day/no-settlement rule. Neither section maps `0` or other code to operation outcome.
 - Printed pages 36-37, table 11: `0` completed successfully and `48` reversed transaction. `0` table entry alone is not Inquiry/Reversal mapping. Page 21 plus table 11 makes `48` Verify-specific after known reversed state; table alone does not establish Reversal retry behavior.
 
+## Goal 8 source locations (`PROTOCOL`)
+
+- Printed pages 10 and 31-32: combined Verify/Settle purpose, exact `bpVerifySettleRequest` table-12 fields/types, response-code-string return, callback/`ResCode` workflow, non-unique `orderId` permitted equal to `saleOrderId`, and 20-minute automatic-reversal statement after successful Sale without VerifySettle.
+- Printed page 32: `0` successful payment-page transaction and use of VerifySettle for bank-side verification/settlement; repeated VerifySettle wording expressly names success, previous Verify, previous Settle, and previous Reversal.
+- Printed pages 35-36 table 11: maps named retry states to `0`, `43`, `45`, and `48`. This mapping is enabled only because page 32 directly ties those state names to VerifySettle.
+
 ## Reading rules
 
 Preserve identifiers, case, documented types, response codes, and short required values. Summaries do not establish missing namespaces, WSDL schemas, SOAPAction values, envelopes, serialization, or transport wire details. Record uncertainty rather than extrapolating.

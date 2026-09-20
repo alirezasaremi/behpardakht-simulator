@@ -77,6 +77,10 @@
 
 Only `0` returns from `bpSettleRequest`: printed page 22 says it means merchant settlement request received successfully. Correlated verified local Sale records settlement request; state recording is `SIMULATOR_INTERNAL`. No nonzero code returns: table-11 `45`, `46`, `47`, and `61` lack explicit `bpSettleRequest` applicability in source. Repeated, pre-Verify, unknown, mismatched, malformed, and unsupported Settle requests are local SOAP Faults. See [SETTLE.md](SETTLE.md).
 
+## Goal 8 VerifySettle response audit
+
+`bpVerifySettleRequest` returns exactly `0`, `43`, `45`, or `48`. Printed page 32 directly ties its success/retry language to this operation: `0` is successful payment-page transaction and uses combined VerifySettle; retry ends at success, previous Verify, previous Settle, or previous Reversal. Table 11 maps named statuses: `43` prior successful Verify, `45` settled, `48` reversed. `0` atomically records local verified plus settlement-requested state; `43`, `45`, and `48` return without mutation. No other table-11 code returns because none is VerifySettle-specific. See [VERIFY_SETTLE.md](VERIFY_SETTLE.md).
+
 ## Goal 7 Inquiry and Reversal response audit
 
 Inquiry/Reversal sections establish response-code strings only. Neither maps `0` nor any other code to operation outcome; table-11 `0` is global evidence only. Goal 7 returns no Behpardakht code from either operation. Fully correlated calls and malformed/mismatched/unsupported states are local SOAP Faults without mutation. `48` does not return for Reversal repeat; table 11 does not tie it to that operation. See [INQUIRY.md](INQUIRY.md) and [REVERSAL.md](REVERSAL.md).

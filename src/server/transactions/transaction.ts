@@ -292,14 +292,17 @@ export function recordSettlementRequested(
   return settle(transaction, "SETTLE", clock, identifiers);
 }
 
-/** Records accepted combined Verify/Settle result; it does not implement bpVerifySettleRequest. */
+/** Records accepted combined Verify/Settle result for bpVerifySettleRequest. */
 export function recordVerifySettleRequested(
   transaction: Transaction,
   clock: Clock,
   identifiers: IdentifierGenerator,
 ): Transaction {
   require(
-    transaction.saleState === "SUCCEEDED" && transaction.verificationState === "NOT_ATTEMPTED" && transaction.settlementState === "NOT_REQUESTED",
+    transaction.saleState === "SUCCEEDED" &&
+      transaction.verificationState === "NOT_ATTEMPTED" &&
+      transaction.settlementState === "NOT_REQUESTED" &&
+      transaction.reversalState === "NOT_REVERSED",
     transaction,
     "VerifySettle requires successful Sale with no later lifecycle request.",
   );

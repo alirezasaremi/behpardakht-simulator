@@ -4,10 +4,10 @@
 2. Goal 2: transaction domain and state model. Complete: immutable domain aggregate, transition/event rules, clock, and in-memory repository.
 3. Goal 3: SOAP foundation and `bpPayRequest`. Complete: local SOAP compatibility profile, safe XML intake, documented Pay fields/result, local RefId generation, and Goal 2 repository integration. No payment page or callback.
 4. Goal 4: fake payment page and callback. Complete: local StartPay POST, fake success/non-success Sale, simulator SaleReferenceId, safe callback payload/dispatch, SSRF boundary, browser lifecycle.
-5. Goal 5: `bpVerifyRequest`. Complete: local SOAP table-2 adapter, bigint-safe complete Sale correlation, successful verification, documented already-verified result, and response audit. Goal 7 extends only reversed Verify result; timers, VerifySettle, and scenario engine remain deferred.
+5. Goal 5: `bpVerifyRequest`. Complete: local SOAP table-2 adapter, bigint-safe complete Sale correlation, successful verification, documented already-verified result, and response audit. Goal 7 extends only reversed Verify result; timers and scenario engine remain deferred.
 6. Goal 6: `bpSettleRequest`. Complete: local SOAP table-3 adapter, bigint-safe verified-Sale correlation, accepted settlement-request record, source-backed `0`, no speculative nonzero code. Goal 7 adds derived conservative Reversal boundary.
 7. Goal 7: `bpInquiryRequest` and `bpReversalRequest`. Complete: table-4/table-5 SOAP adapters, bigint-safe correlation, source audit, and conservative no-provider-result faults where v1.39 lacks operation-specific mappings. Verify `48` remains modeled for known reversed state. No timer or scenario engine.
-8. Goal 8: `bpVerifySettleRequest`.
+8. Goal 8: `bpVerifySettleRequest`. Complete: table-12 SOAP adapter, bigint-safe correlation, atomic combined lifecycle record, source-backed `0`/`43`/`45`/`48` result audit, and no callback/timer/real settlement.
 9. Goal 9: deterministic scenario engine.
 10. Goal 10: transport/protocol fault injection.
 11. Goal 11: developer dashboard.

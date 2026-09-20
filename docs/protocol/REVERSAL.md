@@ -19,3 +19,7 @@ No provider success/result is source-backed. Eligible-form requests return local
 ## Provider response audit
 
 `0` is **GLOBAL only**: table 11 says transaction completed successfully, but Reversal section has no operation-specific `0`, example, or lifecycle mapping. Goal 7 returns no Behpardakht code from Reversal. Table-11 `48` likewise does not establish Reversal repeat response.
+
+## VerifySettle interaction
+
+Page 32 explicitly names prior `reverse` as `bpVerifySettleRequest` retry outcome; table 11 maps that named state to `48`. Goal 8 returns `48` only for simulator's existing known `REVERSED` state and does not make `bpReversalRequest` create it or gain a provider result.

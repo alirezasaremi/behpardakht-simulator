@@ -14,6 +14,8 @@ Goal 6 adds unit/local SOAP contract coverage for table-3 Settle parsing, bigint
 
 Goal 7 adds unit/local SOAP contract coverage for table-4 Inquiry and table-5 Reversal parsing, bigint precision, complete correlation, non-unique request `orderId`, password omission, no-mutation local faults where result mapping is unspecified, documented Reversal ordering, derived settlement boundary, and Verify `48` for simulator known-reversed state. No browser controls were added; these are merchant/server operations. [INQUIRY.md](protocol/INQUIRY.md) and [REVERSAL.md](protocol/REVERSAL.md) audit returned codes.
 
+Goal 8 adds unit/local SOAP contract coverage for table-12 VerifySettle parsing, bigint precision, source-based non-unique `orderId`, complete Sale correlation, atomic `0` state transition, one combined-operation event, password omission, no callback, `43` already verified, `45` already settled, `48` known reversed, and no-mutation local faults for malformed/non-success/mismatched requests. No browser control is added. [VERIFY_SETTLE.md](protocol/VERIFY_SETTLE.md) audits every returned code.
+
 ```bash
 npm run lint
 npm run typecheck

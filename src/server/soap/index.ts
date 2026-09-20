@@ -5,4 +5,5 @@ export * from "./reversal-request";
 export * from "./service";
 export * from "./settle-request";
 export * from "./verify-request";
+export * from "./verify-settle-request";
 export * from "./xml";

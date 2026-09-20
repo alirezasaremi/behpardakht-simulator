@@ -25,7 +25,7 @@ For a successful Sale, no Verify request within 20 minutes causes gateway automa
 
 For a correlated successful Sale, simulator appends `VERIFY_ATTEMPTED`, then `VERIFICATION_CONFIRMED`, saves one immutable final snapshot, and returns `0`. Sale correlation values stay unchanged. Settlement stays `NOT_REQUESTED`; no callback is sent. A subsequent correlated Verify returns `43` and adds no event. Goal 7 adds internal known `REVERSED`: a later correlated Verify returns `48` without event/mutation because page 21 expressly names previous reversal as Verify result. `bpReversalRequest` does not currently create this state.
 
-Current state machine remains able to represent repeated unresolved Verify attempts. Normal SOAP Verify remains atomic and does not manufacture an unresolved provider outcome. A non-success local Sale therefore has no simulated Verify provider result; it produces a local SOAP fault without mutation. No timer, automatic reversal, refund, VerifySettle, or scenario engine exists.
+Current state machine remains able to represent repeated unresolved Verify attempts. Normal SOAP Verify remains atomic and does not manufacture an unresolved provider outcome. A non-success local Sale therefore has no simulated Verify provider result; it produces a local SOAP fault without mutation. No timer, automatic reversal, refund, or scenario engine exists.
 
 ## Provider response audit
 
@@ -36,3 +36,7 @@ Current state machine remains able to represent repeated unresolved Verify attem
 | `48` | Transaction reversed. | Correlated transaction completed local Reversal. | Printed page 21 explicitly names previously reversed Verify result; printed page 37 table 11 code `48`. | `PROTOCOL` mapping; reversal lifecycle is `SIMULATOR_INTERNAL`. |
 
 `42` Sale not found is not returned: table 11 explains its matching-Sale condition specifically for refund, not Verify. Unknown or mismatching Verify correlation is a local SOAP fault, never an invented provider code.
+
+## VerifySettle interaction
+
+Printed page 32 separately makes previous `verify` an explicit `bpVerifySettleRequest` retry result. Goal 8 returns `43` from VerifySettle after confirmed separate Verify and does not continue to local settlement. Verify behavior itself remains unchanged.

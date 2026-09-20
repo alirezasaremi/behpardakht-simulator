@@ -30,6 +30,12 @@ Goal 3 implements only source table-1 field extraction. Table marks `mobileNo`, 
 
 Source table 11 labels `41` “duplicate request number,” while Pay notes say duplicate `orderId` returns an error. v1.39 never explicitly connects `41` to duplicate `bpPayRequest` / `orderId`; provider result code and non-success result grammar for this condition are `UNSPECIFIED`. Goal 3 preserves terminal-scoped uniqueness internally and returns a `SIMULATOR_INTERNAL` HTTP 409 SOAP Fault for duplicates. No Goal 3 condition maps to a Behpardakht response code beyond documented success `0,RefId`.
 
+## Dynamic Pay (`bpDynamicPayRequest`)
+
+Printed pages 28-29/table 9 define Type Two Dynamic Pay. It has the Pay request fields plus `subServiceId` (`long`), a dynamically selected payout-account identifier. `mobileNo`, `encPan`, `panHiddenMode`, `cartItem`, and `enc` are optional. `additionalData` has a 1000-character maximum. Source illustrates `0,RefId`; `0` causes case-sensitive RefId POST to next stage. Dynamic Pay `orderId` must be unique. Printed pages 9-10 say later confirmation, settlement, reversal, and inquiry follow Pay-like flow.
+
+Goal 12 implements only safe normal-path table-9 input. `subServiceId` parses as `bigint` then is discarded; `paymentOperation: "DYNAMIC_PAY"` is a `SIMULATOR_INTERNAL` diagnostic discriminator, not new provider state. Local input rejects optional `mobileNo`, `encPan`, and `enc` to prevent personal/card/identity data intake; it accepts/discards `panHiddenMode` and `cartItem`. Provider cross-operation request-number collisions, nonzero Dynamic Pay response codes, provisioning/validation, exact wire schema, and callback differences are `UNSPECIFIED`; no table-11 code is inferred. Local repository rejects same `terminalId + orderId` across Pay/Dynamic Pay as `SIMULATOR_INTERNAL` ambiguity prevention.
+
 ## Verify (`bpVerifyRequest`)
 
 `bpVerifyRequest` returns a string containing a response code (printed page 21). Its exact source fields are `terminalId`, `userName`, `userPassword`, `orderId`, `saleOrderId`, and `saleReferenceId`; types are respectively `long`, `string`, `string`, `long`, `long`, and `long`.

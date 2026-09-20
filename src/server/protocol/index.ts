@@ -1,3 +1,4 @@
+export * from "./dynamic-pay-request";
 export * from "./inquiry-request";
 export * from "./pay-request";
 export * from "./reversal-request";

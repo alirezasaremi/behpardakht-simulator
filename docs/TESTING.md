@@ -22,6 +22,8 @@ Goal 10 adds transport-engine/control/SOAP coverage: bounded profiles/operations
 
 Goal 11 adds dashboard query/route coverage: explicit safe list/detail DTOs, decimal bigint identifiers, case-preserved RefId, fixed bounds, callback/scenario/fault/event mapping, sensitive-field structural absence, unknown detail, and pure reads that preserve aggregate/event/scenario/fault state. Browser coverage loads empty `/local`, creates fake Pay/Sale, observes identifiers/states, then exercises scenario and transport controls with real local SOAP.
 
+Goal 12 adds source-audit records plus Dynamic Pay coverage: table-9 exact required fields, bigint-safe `subServiceId`, safe optional display fields, rejected mobile/card/identity fields, missing/invalid/extra local input faults, documented `0,RefId`, terminal-wide local duplicate request number across Pay/Dynamic Pay, discarded credentials/sub-service data, local SOAP/HTTP boundary, local lifecycle identity, and safe dashboard projection. No transport/scenario extension is implied.
+
 ```bash
 npm run lint
 npm run typecheck

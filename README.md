@@ -10,11 +10,13 @@ Goal 10 adds separate transaction-scoped one-shot transport faults for Verify, S
 
 Goal 11 adds [local developer dashboard](docs/DASHBOARD.md) at `/local`. It reads explicit safe diagnostic DTOs from `/local/api/transactions`; it never edits transaction state or protocol records. Detail pages expose only bounded scenario and transport-fault controls already available under `/local/api/`.
 
+Goal 12 audits every remaining v1.39 capability in [remaining protocol audit](docs/protocol/REMAINING_PROTOCOL_AUDIT.md). It adds only safe normal-path `bpDynamicPayRequest`: required table-9 input including `subServiceId`, documented `0,RefId`, then existing local Sale/callback plumbing as `DERIVED` compatibility. It rejects optional mobile/card/identity fields and does not model payout provisioning.
+
 Callbacks are blocked by default. For a controlled local receiver, start server with an explicit exact-origin allowlist, for example `SIMULATOR_CALLBACK_ALLOWED_ORIGINS=http://127.0.0.1:4010 npm run dev`. Do not allow arbitrary hosts. No real card information belongs in SOAP, browser forms, logs, or callback payloads.
 
 ## Minimal local walkthrough
 
-1. Send fake `bpPayRequest` values to `POST /api/soap` as documented in [SOAP compatibility](docs/protocol/SOAP_COMPATIBILITY.md), then extract `RefId` from `0,RefId`.
+1. Send fake `bpPayRequest` or safe normal-path `bpDynamicPayRequest` values to `POST /api/soap` as documented in [SOAP compatibility](docs/protocol/SOAP_COMPATIBILITY.md), then extract `RefId` from `0,RefId`.
 2. Submit a browser form to local endpoint only:
 
 ```html

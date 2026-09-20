@@ -22,7 +22,7 @@ export interface TransactionRepository {
 /** SIMULATOR_INTERNAL local repository. It is synchronous, in-memory, and replaceable. */
 export class InMemoryTransactionRepository implements TransactionRepository {
   private readonly transactions = new Map<string, Transaction>();
-  private readonly payOrderIndex = new Map<string, string>();
+  private readonly paymentRequestIndex = new Map<string, string>();
 
   create(transaction: Transaction): Transaction {
     if (this.transactions.has(transaction.id)) {
@@ -32,8 +32,8 @@ export class InMemoryTransactionRepository implements TransactionRepository {
       );
     }
 
-    const payOrderKey = keyForPayOrder(transaction.terminalId, transaction.orderId);
-    if (this.payOrderIndex.has(payOrderKey)) {
+    const paymentRequestKey = keyForPaymentRequest(transaction.terminalId, transaction.orderId);
+    if (this.paymentRequestIndex.has(paymentRequestKey)) {
       throw new TransactionDomainError(
         "DUPLICATE_PAY_ORDER_ID",
         `Pay orderId ${transaction.orderId} already exists for terminalId ${transaction.terminalId}.`,
@@ -42,7 +42,7 @@ export class InMemoryTransactionRepository implements TransactionRepository {
 
     const snapshot = snapshotOf(transaction);
     this.transactions.set(snapshot.id, snapshot);
-    this.payOrderIndex.set(payOrderKey, snapshot.id);
+    this.paymentRequestIndex.set(paymentRequestKey, snapshot.id);
     return snapshotOf(snapshot);
   }
 
@@ -56,7 +56,7 @@ export class InMemoryTransactionRepository implements TransactionRepository {
   }
 
   getByTerminalIdAndOrderId(terminalId: bigint, orderId: bigint): Transaction | undefined {
-    const transactionId = this.payOrderIndex.get(keyForPayOrder(terminalId, orderId));
+    const transactionId = this.paymentRequestIndex.get(keyForPaymentRequest(terminalId, orderId));
     return transactionId === undefined ? undefined : this.getById(transactionId);
   }
 
@@ -86,7 +86,7 @@ export class InMemoryTransactionRepository implements TransactionRepository {
         `Transaction ${transaction.id} does not exist.`,
       );
     }
-    if (stored.terminalId !== transaction.terminalId || stored.orderId !== transaction.orderId) {
+    if (stored.paymentOperation !== transaction.paymentOperation || stored.terminalId !== transaction.terminalId || stored.orderId !== transaction.orderId) {
       throw new TransactionDomainError(
         "IMMUTABLE_TRANSACTION_IDENTITY",
         `terminalId and orderId cannot change for transaction ${transaction.id}.`,
@@ -99,7 +99,8 @@ export class InMemoryTransactionRepository implements TransactionRepository {
   }
 }
 
-function keyForPayOrder(terminalId: bigint, orderId: bigint): string {
+/** SIMULATOR_INTERNAL: terminal-wide uniqueness prevents ambiguous local payment identity. */
+function keyForPaymentRequest(terminalId: bigint, orderId: bigint): string {
   return `${terminalId}:${orderId}`;
 }
 

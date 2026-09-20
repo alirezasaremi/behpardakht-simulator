@@ -27,6 +27,7 @@ export type PendingTransportFaultDto = Readonly<{
 export type DashboardTransactionListItem = Readonly<{
   transactionId: string;
   refId?: string;
+  paymentOperation: Transaction["paymentOperation"];
   terminalId: string;
   orderId: string;
   saleOrderId?: string;
@@ -115,6 +116,7 @@ export class DashboardQueryService {
     return {
       transactionId: transaction.id,
       refId: transaction.refId,
+      paymentOperation: transaction.paymentOperation,
       terminalId: transaction.terminalId.toString(),
       orderId: transaction.orderId.toString(),
       saleOrderId: optionalBigint(transaction.saleOrderId),

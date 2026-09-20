@@ -6,6 +6,8 @@ export type SaleState = "PENDING" | "SUCCEEDED" | "NON_SUCCESS";
 export type VerificationState = "NOT_ATTEMPTED" | "ATTEMPTED" | "VERIFIED";
 export type SettlementState = "NOT_REQUESTED" | "REQUESTED";
 export type ReversalState = "NOT_REVERSED" | "REVERSED";
+/** SIMULATOR_INTERNAL local request categories based on documented operation names. */
+export type PaymentOperation = "PAY" | "DYNAMIC_PAY";
 
 export type LifecycleState =
   | "AWAITING_SALE"
@@ -65,6 +67,8 @@ export type TransactionEvent =
 export type Transaction = Readonly<{
   /** SIMULATOR_INTERNAL identifier. */
   id: string;
+  /** SIMULATOR_INTERNAL operation identity; no provider wire behavior is implied by storage. */
+  paymentOperation: PaymentOperation;
   /** Documented Pay fields use their Behpardakht casing. */
   terminalId: bigint;
   orderId: bigint;
@@ -90,6 +94,7 @@ export type Transaction = Readonly<{
 }>;
 
 export type CreateTransactionInput = Readonly<{
+  paymentOperation?: PaymentOperation;
   terminalId: bigint;
   orderId: bigint;
   amount: bigint;
@@ -117,6 +122,7 @@ export function createTransaction(
   const now = timestamp(clock);
   return freezeTransaction({
     id: identifiers.nextTransactionId(),
+    paymentOperation: input.paymentOperation ?? "PAY",
     ...input,
     saleState: "PENDING",
     verificationState: "NOT_ATTEMPTED",

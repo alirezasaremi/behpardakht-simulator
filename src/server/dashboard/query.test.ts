@@ -24,6 +24,7 @@ describe("DashboardQueryService", () => {
     expect(response.transactions).toHaveLength(1);
     expect(response.transactions[0]).toMatchObject({
       refId: "CaseSensitive-RefId",
+      paymentOperation: "PAY",
       terminalId: "9007199254740993",
       orderId: "9007199254740995",
       amount: "12345678901234567890",

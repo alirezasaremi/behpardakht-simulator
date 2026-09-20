@@ -8,6 +8,7 @@ This profile makes a local development simulator usable. It is not a claim of pr
 - Printed source page 12: provider test and operational WSDL URLs are listed in `SOURCE.md`.
 - Printed pages 14-16: `bpPayRequest` fields, case-sensitive spellings, source types, optional fields, `additionalData` maximum 1000 characters, and `localDate` / `localTime` examples.
 - Printed pages 14-17: successful Pay result example `0, AF82041a2Bf6989c7fF9`; first component is `ResCode`, second is case-sensitive `RefId`; Pay `orderId` must be unique and duplicate request returns an error.
+- Printed pages 28-29 table 9: `bpDynamicPayRequest` fields/types, `subServiceId`, unique Dynamic Pay `orderId`, case-sensitive RefId, and illustrated `0,RefId` success. Source does not map a Dynamic Pay failure state to a table-11 code.
 - Printed page 36: table 11 labels `41` “duplicate request number.” PDF does not explicitly connect this row to duplicate Pay `orderId`.
 - Printed page 22 table 3: `bpSettleRequest` exact fields/types; its `0` is successful receipt of settlement request. Settle `orderId` need not be unique and may equal `saleOrderId`.
 - Printed pages 31-32 table 12: `bpVerifySettleRequest` exact fields/types; its source-specific retry prose plus table 11 establish `0`, `43`, `45`, and `48`. VerifySettle `orderId` need not be unique and may equal `saleOrderId`.
@@ -21,16 +22,17 @@ PDF does not supply WSDL schema contents, XML namespaces, SOAP version/envelope 
 
 - Endpoint: `POST /api/soap`; never production host or proxy.
 - SOAP version: SOAP 1.1 envelope namespace `http://schemas.xmlsoap.org/soap/envelope/`.
-- Envelope: one SOAP `Body`, one direct operation element. Optional operation namespace/prefix is ignored; local element name must be exactly `bpPayRequest`, `bpVerifyRequest`, `bpSettleRequest`, `bpVerifySettleRequest`, `bpInquiryRequest`, or `bpReversalRequest`.
-- Supported operations: only `bpPayRequest`, `bpVerifyRequest`, `bpSettleRequest`, `bpVerifySettleRequest`, `bpInquiryRequest`, `bpReversalRequest`.
-- Response: SOAP 1.1 envelope containing matching local `Response` / `Result` wrappers. Pay success is documented `0,RefId`; other audits are [VERIFY.md](VERIFY.md), [SETTLE.md](SETTLE.md), [VERIFY_SETTLE.md](VERIFY_SETTLE.md), [INQUIRY.md](INQUIRY.md), and [REVERSAL.md](REVERSAL.md).
+- Envelope: one SOAP `Body`, one direct operation element. Optional operation namespace/prefix is ignored; local element name must be exactly `bpPayRequest`, `bpDynamicPayRequest`, `bpVerifyRequest`, `bpSettleRequest`, `bpVerifySettleRequest`, `bpInquiryRequest`, or `bpReversalRequest`.
+- Supported operations: only `bpPayRequest`, safe normal-path `bpDynamicPayRequest`, `bpVerifyRequest`, `bpSettleRequest`, `bpVerifySettleRequest`, `bpInquiryRequest`, `bpReversalRequest`.
+- Response: SOAP 1.1 envelope containing matching local `Response` / `Result` wrappers. Pay/Dynamic Pay success is documented `0,RefId`; other audits are [VERIFY.md](VERIFY.md), [SETTLE.md](SETTLE.md), [VERIFY_SETTLE.md](VERIFY_SETTLE.md), [INQUIRY.md](INQUIRY.md), and [REVERSAL.md](REVERSAL.md).
 - Faults: malformed/unsupported/structurally invalid input returns HTTP 400 local SOAP `Fault`, not Behpardakht `ResCode`. Internal failures return generic HTTP 500 local SOAP `Fault`.
 - Goal 10 may return fixed simulator-only HTTP 503, fixed malformed XML, or fixed post-execution delay after normal input safety/correlation. These are not SOAP Faults or provider behavior; see `../scenarios/TRANSPORT_FAULTS.md`.
-- Duplicate `(terminalId, orderId)`: terminal-scoped uniqueness is preserved. Local service returns HTTP 409 SOAP Fault `Client.DuplicatePayOrderId`; this is not Behpardakht `41` or any provider response code.
+- Duplicate `(terminalId, orderId)`: terminal-wide Pay/Dynamic Pay uniqueness is a `SIMULATOR_INTERNAL` ambiguity-prevention rule. Local service returns HTTP 409 SOAP Fault `Client.DuplicatePayOrderId` or `Client.DuplicateDynamicPayOrderId`, based on invoked local operation; neither is Behpardakht `41` or provider response code.
 - No SOAPAction requirement is enforced because v1.39 does not define one.
 - Decimal integer text is converted directly to `bigint`; it must use ASCII digits only. This avoids JavaScript number precision loss. No production long lexical/range claim is made.
 - Local RefIds use opaque `local_` plus random UUID-derived token. They are uniqueness-checked against running repository state, case-sensitive, transport-safe, non-secret, and injectable in tests. Their format is not provider format.
 - Merchant authentication/configuration, Mana brokerage category, and registered-domain lookup are not implemented. Verify/Settle/Inquiry/Reversal user credentials are structural compatibility input only and never persist/log. Goal 4 payment-page/callback behavior is separate in `START_PAY.md` and `CALLBACK.md`.
+- Dynamic Pay validates table-9 required normal-path fields. Its `subServiceId` is parsed bigint-safe then discarded; no provider provisioning/payout model exists. Source-optional `mobileNo`, `encPan`, and `enc` are rejected locally to avoid personal/card/identity data. This safety boundary is `SIMULATOR_INTERNAL`, not provider acceptance behavior.
 
 ## Input validation and XML safety
 

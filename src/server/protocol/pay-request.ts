@@ -66,7 +66,8 @@ export class BpPayRequestHandler {
     try {
       const created = this.dependencies.repository.create(
         createTransaction(
-          {
+      {
+            paymentOperation: "PAY",
             terminalId: input.terminalId,
             orderId: input.orderId,
             amount: input.amount,

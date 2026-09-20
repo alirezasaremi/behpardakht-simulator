@@ -55,6 +55,13 @@ This inventory does not make every method an MVP. See `ROADMAP.md` for simulator
 - Printed page 32: `0` successful payment-page transaction and use of VerifySettle for bank-side verification/settlement; repeated VerifySettle wording expressly names success, previous Verify, previous Settle, and previous Reversal.
 - Printed pages 35-36 table 11: maps named retry states to `0`, `43`, `45`, and `48`. This mapping is enabled only because page 32 directly ties those state names to VerifySettle.
 
+## Goal 12 source locations (`PROTOCOL`)
+
+- Printed pages 9-10: names Dynamic Pay and says later confirmation, settlement, reversal, and inquiry follow Pay-like flow.
+- Printed pages 28-29 table 9: exact `bpDynamicPayRequest` fields/types, `subServiceId`, optional fields, 1000-character `additionalData`, unique Dynamic Pay request number, case-sensitive RefId, and illustrated `0,RefId`/POST next stage.
+- Printed pages 24-28 tables 6-8: Refund request variants, constraints and response examples; final state depends on refund inquiry services not supplied in this PDF.
+- Printed pages 14-20 and 30-31: Charge, redirect-specialized and cumulative Dynamic Pay evidence. See [remaining protocol audit](REMAINING_PROTOCOL_AUDIT.md) for exact inventory and withheld assumptions.
+
 ## Reading rules
 
 Preserve identifiers, case, documented types, response codes, and short required values. Summaries do not establish missing namespaces, WSDL schemas, SOAPAction values, envelopes, serialization, or transport wire details. Record uncertainty rather than extrapolating.

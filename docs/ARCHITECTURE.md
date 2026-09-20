@@ -45,7 +45,7 @@ Server modules: `src/server/protocol`, `src/server/soap`, `src/server/transactio
 
 SOAP requests use a 64 KiB local body cap. `saxes` is event-driven XML parsing; its installed source confirms it does not fetch a DTD or define extra DTD entities unless caller explicitly does so. This adapter rejects every DTD, accepts no remote resource, uses bounded depth/node counts, and does not log input values. Exact limits and SOAP representation are not Behpardakht facts.
 
-`BpPayRequestHandler` validates source-backed field shape at adapter, creates Goal 2 transaction, assigns one unique opaque local RefId, saves its event-bearing immutable snapshot, then formats success as documented `0,RefId`. It retains only existing Goal 2 transaction correlation data: `terminalId`, `orderId`, `amount`, `callBackUrl`, and local `refId`. It never persists `userPassword`, `userName`, card-related optional values, or raw XML.
+`BpPayRequestHandler` validates source-backed field shape at adapter, creates Goal 2 transaction, assigns one unique opaque local RefId, saves its event-bearing immutable snapshot, then formats success as documented `0,RefId`. It retains only existing Goal 2 transaction correlation data: `terminalId`, `orderId`, `amount`, `callBackUrl`, and local `refId`. It never persists `userPassword`, `userName`, card-related optional values, or raw XML. Goal 12 adds `BpDynamicPayRequestHandler` for safe table-9 normal path: it validates required Dynamic Pay fields including bigint-safe `subServiceId`, discards that request-only value, assigns same documented result shape, and records `paymentOperation: "DYNAMIC_PAY"` only for local diagnostics. It rejects mobile/card/identity optional fields; no payout/provider configuration is modeled.
 
 `BpVerifyRequestHandler` uses table-2 `terminalId`, `saleOrderId`, `saleReferenceId` as complete Sale correlation. Verify `orderId` is only source-defined verification-request number: non-unique, permitted equal `saleOrderId`. After documented boundary it consults injected `ScenarioPolicy`. `NORMAL` preserves immutable attempt/confirmation and source-backed `0`/`43`; `VERIFY_UNRESOLVED` saves only attempt then emits local `SimulatorScenario.VerifyUnresolved` Fault with no provider code. It neither settles nor dispatches callback. Unknown/mismatching correlation and non-modeled states are local faults, not provider codes.
 
@@ -77,7 +77,7 @@ Aggregate does not select scenarios. It represents resulting `REVERSED` state an
 
 ## Transaction domain (`SIMULATOR_INTERNAL`)
 
-`src/server/transactions` is a small immutable aggregate and no endpoint. It stores protocol-correlating fields using documented casing (`terminalId`, `orderId`, `amount`, `callBackUrl`, `refId`, `saleOrderId`, `saleReferenceId`) plus simulator transaction/event IDs.
+`src/server/transactions` is a small immutable aggregate and no endpoint. It stores protocol-correlating fields using documented casing (`terminalId`, `orderId`, `amount`, `callBackUrl`, `refId`, `saleOrderId`, `saleReferenceId`) plus local safe `paymentOperation` and simulator transaction/event IDs.
 
 Four constrained axes model lifecycle facts: Sale (`PENDING`, `SUCCEEDED`, `NON_SUCCESS`), verification (`NOT_ATTEMPTED`, `ATTEMPTED`, `VERIFIED`), settlement (`NOT_REQUESTED`, `REQUESTED`), and reversal (`NOT_REVERSED`, `REVERSED`). Derived `lifecycleState` gives diagnostics a single current label. `NON_SUCCESS` deliberately is not final failure: v1.39 documents a Verify path after nonzero callback `ResCode`. Axes are necessary because an unresolved Verify attempt is materially different from a confirmed Verify, while Inquiry does not itself create a known provider state.
 
@@ -87,7 +87,7 @@ Goal 8 combined success changes verification and settlement in one snapshot, wit
 
 Goal 9 adds `SCENARIO_STATE_FORCED { scenario: "KNOWN_REVERSED" }`. This is explicitly `SIMULATOR_SCENARIO`, unlike `REVERSAL_COMPLETED`, never claims `bpReversalRequest` happened.
 
-The replaceable `TransactionRepository` has an in-memory implementation. It enforces documented Pay `orderId` uniqueness within `terminalId` context and supports lookup by simulator ID, Pay correlation, `refId`, and later-operation correlation (`terminalId`, `saleOrderId`, `saleReferenceId`). `bigint` preserves `long` values internally; it is not a wire-serialization decision.
+The replaceable `TransactionRepository` has an in-memory implementation. It preserves pre-Goal-12 terminal-wide `orderId` uniqueness across Pay/Dynamic Pay. This cross-operation rule is `SIMULATOR_INTERNAL` ambiguity prevention: source does not establish collision behavior. It supports lookup by simulator ID, payment-request correlation, `refId`, and later-operation correlation (`terminalId`, `saleOrderId`, `saleReferenceId`). `bigint` preserves `long` values internally; it is not a wire-serialization decision.
 
 `Clock` has `SystemClock` and deterministic `ManualClock`. It records timestamps only; no scheduled job or real timer is implemented.
 

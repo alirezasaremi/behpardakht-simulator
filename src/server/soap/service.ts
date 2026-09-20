@@ -4,6 +4,8 @@ import type { TransportFaultAssignment, TransportFaultEngine, TransportFaultOper
 import {
   BpPayRequestApplicationError,
   BpPayRequestHandler,
+  BpDynamicPayRequestHandler,
+  BpDynamicPayRequestApplicationError,
   BpInquiryRequestApplicationError,
   BpInquiryRequestHandler,
   BpReversalRequestApplicationError,
@@ -19,8 +21,10 @@ import {
 } from "@/server/protocol";
 import { SoapInputError } from "./errors";
 import { extractBpPayRequest } from "./pay-request";
+import { extractBpDynamicPayRequest } from "./dynamic-pay-request";
 import {
   serializePayResponse,
+  serializeDynamicPayResponse,
   serializeSettleResponse,
   serializeSoapFault,
   serializeVerifyResponse,
@@ -47,6 +51,7 @@ const MALFORMED_SOAP_RESPONSE = "<simulator-malformed-soap";
 export class LocalSoapService {
   readonly repository;
   private readonly payRequests: BpPayRequestHandler;
+  private readonly dynamicPayRequests: BpDynamicPayRequestHandler;
   private readonly inquiryRequests: BpInquiryRequestHandler;
   private readonly reversalRequests: BpReversalRequestHandler;
   private readonly settleRequests: BpSettleRequestHandler;
@@ -58,6 +63,7 @@ export class LocalSoapService {
   constructor(dependencies: LocalSoapServiceDependencies) {
     this.repository = dependencies.repository;
     this.payRequests = new BpPayRequestHandler(dependencies);
+    this.dynamicPayRequests = new BpDynamicPayRequestHandler(dependencies);
     this.inquiryRequests = new BpInquiryRequestHandler(dependencies);
     this.reversalRequests = new BpReversalRequestHandler(dependencies);
     this.settleRequests = new BpSettleRequestHandler(dependencies);
@@ -74,6 +80,10 @@ export class LocalSoapService {
       if (operation.name === "bpPayRequest") {
         const result = this.payRequests.execute(extractBpPayRequest(operation));
         return xmlResponse(serializePayResponse(result.result), 200);
+      }
+      if (operation.name === "bpDynamicPayRequest") {
+        const result = this.dynamicPayRequests.execute(extractBpDynamicPayRequest(operation));
+        return xmlResponse(serializeDynamicPayResponse(result.result), 200);
       }
       if (operation.name === "bpVerifyRequest") {
         const input = extractBpVerifyRequest(operation);
@@ -104,6 +114,12 @@ export class LocalSoapService {
       }
       throw new SoapInputError("UNSUPPORTED_OPERATION", "Unsupported SOAP operation.");
     } catch (error) {
+      if (error instanceof BpDynamicPayRequestApplicationError && error.code === "DUPLICATE_DYNAMIC_PAY_ORDER_ID") {
+        return xmlResponse(
+          serializeSoapFault("Client.DuplicateDynamicPayOrderId", "Duplicate Dynamic Pay orderId is not accepted by local simulator."),
+          409,
+        );
+      }
       if (error instanceof BpPayRequestApplicationError && error.code === "DUPLICATE_PAY_ORDER_ID") {
         return xmlResponse(
           serializeSoapFault("Client.DuplicatePayOrderId", "Duplicate Pay orderId is not accepted by local simulator."),

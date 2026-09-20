@@ -13,7 +13,7 @@ Manual **Refresh** fetches current process-memory state. No polling, WebSocket, 
 
 ## Safe query boundary
 
-`src/server/dashboard` maps fields deliberately; it never returns an aggregate directly. List fields are `transactionId`, `refId`, `terminalId`, `orderId`, `saleOrderId`, `saleReferenceId`, `amount`, `saleState`, `verificationState`, `settlementState`, `reversalState`, `lifecycleState`, `callback`, `scenario`, `pendingTransportFault`, `createdAt`, and `updatedAt`. Detail adds `saleResCode`, `saleCompletedAt`, `verificationAttemptedAt`, `verifiedAt`, `settlementRequestedAt`, `reversedAt`, and safe mapped `events`.
+`src/server/dashboard` maps fields deliberately; it never returns an aggregate directly. List fields are `transactionId`, `refId`, `paymentOperation`, `terminalId`, `orderId`, `saleOrderId`, `saleReferenceId`, `amount`, `saleState`, `verificationState`, `settlementState`, `reversalState`, `lifecycleState`, `callback`, `scenario`, `pendingTransportFault`, `createdAt`, and `updatedAt`. Detail adds `saleResCode`, `saleCompletedAt`, `verificationAttemptedAt`, `verifiedAt`, `settlementRequestedAt`, `reversedAt`, and safe mapped `events`.
 
 All bigint identifiers are decimal strings. RefId is preserved verbatim and case-sensitive. Callback diagnostics contain only attempt/status/timestamps/failure category/HTTP status; destination URL and callback body are absent. Events contain only `eventId`, timestamp, type, classification, and allowlisted scalar metadata.
 

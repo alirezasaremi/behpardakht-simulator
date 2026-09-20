@@ -3,6 +3,7 @@ import { RandomSaleReferenceIdGenerator, LocalPaymentService } from "@/server/pa
 import { RandomRefIdGenerator } from "@/server/protocol";
 import { ScenarioEngine } from "@/server/scenarios";
 import { LocalSoapService } from "@/server/soap";
+import { TransportFaultEngine } from "@/server/transport";
 import { InMemoryTransactionRepository, RandomIdentifierGenerator, SystemClock } from "@/server/transactions";
 
 /** SIMULATOR_INTERNAL composition root. One in-memory instance serves local app routes. */
@@ -12,10 +13,12 @@ export function createLocalSimulator() {
   const identifiers = new RandomIdentifierGenerator();
   const callbacks = new CallbackDispatcher({ allowedOrigins: callbackAllowedOriginsFromEnvironment() });
   const scenarios = new ScenarioEngine({ repository, clock, identifiers });
+  const transportFaults = new TransportFaultEngine();
   return {
     repository,
     scenarios,
-    soap: new LocalSoapService({ repository, clock, identifiers, refIds: new RandomRefIdGenerator(), scenarios }),
+    transportFaults,
+    soap: new LocalSoapService({ repository, clock, identifiers, refIds: new RandomRefIdGenerator(), scenarios, transportFaults }),
     payments: new LocalPaymentService({
       repository,
       clock,

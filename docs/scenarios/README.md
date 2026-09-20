@@ -18,6 +18,8 @@ Assignments transaction-scoped, process memory only. Process restart loses trans
 
 No callback-delivery scenario added. `NORMAL` leaves existing Goal 4 dispatcher behavior unchanged: explicitly allowlisted controlled 2xx receiver records delivery success; rejected, timeout, transport, non-2xx receiver records failure. Both stay separate from successful Sale and retain all SSRF protections.
 
+Goal 10 uses distinct `/local/api/transport-faults` registry, not scenario names or SOAP fields. It provides one-shot merchant-to-gateway observation controls; PRE prevents scenario/protocol execution, POST follows normal execution/commit. See [transport faults](TRANSPORT_FAULTS.md).
+
 ## Extension rule
 
 Future scenario must name semantic condition, be deterministic/transaction-scoped where possible, state lifecycle effects, label control mechanics `SIMULATOR_SCENARIO`, preserve `NORMAL`, test/document separately source-backed provider response. Must not add fake Behpardakht request fields, arbitrary ResCode injection, generic state editing, arbitrary callback destinations/payloads, transport-fault machinery, timers, persistence, randomness, scripts, proxy.

@@ -25,6 +25,7 @@ PDF does not supply WSDL schema contents, XML namespaces, SOAP version/envelope 
 - Supported operations: only `bpPayRequest`, `bpVerifyRequest`, `bpSettleRequest`, `bpVerifySettleRequest`, `bpInquiryRequest`, `bpReversalRequest`.
 - Response: SOAP 1.1 envelope containing matching local `Response` / `Result` wrappers. Pay success is documented `0,RefId`; other audits are [VERIFY.md](VERIFY.md), [SETTLE.md](SETTLE.md), [VERIFY_SETTLE.md](VERIFY_SETTLE.md), [INQUIRY.md](INQUIRY.md), and [REVERSAL.md](REVERSAL.md).
 - Faults: malformed/unsupported/structurally invalid input returns HTTP 400 local SOAP `Fault`, not Behpardakht `ResCode`. Internal failures return generic HTTP 500 local SOAP `Fault`.
+- Goal 10 may return fixed simulator-only HTTP 503, fixed malformed XML, or fixed post-execution delay after normal input safety/correlation. These are not SOAP Faults or provider behavior; see `../scenarios/TRANSPORT_FAULTS.md`.
 - Duplicate `(terminalId, orderId)`: terminal-scoped uniqueness is preserved. Local service returns HTTP 409 SOAP Fault `Client.DuplicatePayOrderId`; this is not Behpardakht `41` or any provider response code.
 - No SOAPAction requirement is enforced because v1.39 does not define one.
 - Decimal integer text is converted directly to `bigint`; it must use ASCII digits only. This avoids JavaScript number precision loss. No production long lexical/range claim is made.

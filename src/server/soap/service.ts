@@ -1,5 +1,6 @@
 import { SystemClock, RandomIdentifierGenerator, InMemoryTransactionRepository } from "@/server/transactions";
 import type { ScenarioPolicy } from "@/server/scenarios";
+import type { TransportFaultAssignment, TransportFaultEngine, TransportFaultOperation } from "@/server/transport";
 import {
   BpPayRequestApplicationError,
   BpPayRequestHandler,
@@ -32,7 +33,15 @@ import { extractBpVerifyRequest } from "./verify-request";
 import { extractBpVerifySettleRequest } from "./verify-settle-request";
 import { MAX_SOAP_REQUEST_BYTES, parseLocalSoapOperation } from "./xml";
 
-export type LocalSoapServiceDependencies = BpPayRequestHandlerDependencies & Readonly<{ scenarios?: ScenarioPolicy }>;
+export type LocalSoapServiceDependencies = BpPayRequestHandlerDependencies & Readonly<{
+  scenarios?: ScenarioPolicy;
+  transportFaults?: TransportFaultEngine;
+  wait?: (milliseconds: number) => Promise<void>;
+}>;
+
+/** SIMULATOR_SCENARIO fixed delay; no caller-configured duration exists. */
+export const POST_EXECUTION_DELAY_MILLISECONDS = 250;
+const MALFORMED_SOAP_RESPONSE = "<simulator-malformed-soap";
 
 /** SIMULATOR_INTERNAL local HTTP/SOAP adapter. */
 export class LocalSoapService {
@@ -43,6 +52,8 @@ export class LocalSoapService {
   private readonly settleRequests: BpSettleRequestHandler;
   private readonly verifyRequests: BpVerifyRequestHandler;
   private readonly verifySettleRequests: BpVerifySettleRequestHandler;
+  private readonly transportFaults: TransportFaultEngine | undefined;
+  private readonly wait: (milliseconds: number) => Promise<void>;
 
   constructor(dependencies: LocalSoapServiceDependencies) {
     this.repository = dependencies.repository;
@@ -52,6 +63,8 @@ export class LocalSoapService {
     this.settleRequests = new BpSettleRequestHandler(dependencies);
     this.verifyRequests = new BpVerifyRequestHandler(dependencies);
     this.verifySettleRequests = new BpVerifySettleRequestHandler(dependencies);
+    this.transportFaults = dependencies.transportFaults;
+    this.wait = dependencies.wait ?? delay;
   }
 
   async handle(request: Request): Promise<Response> {
@@ -63,16 +76,25 @@ export class LocalSoapService {
         return xmlResponse(serializePayResponse(result.result), 200);
       }
       if (operation.name === "bpVerifyRequest") {
-        const result = this.verifyRequests.execute(extractBpVerifyRequest(operation));
-        return xmlResponse(serializeVerifyResponse(result.result), 200);
+        const input = extractBpVerifyRequest(operation);
+        return await this.executeTransportAware("bpVerifyRequest", input, () => {
+          const result = this.verifyRequests.execute(input);
+          return { transaction: result.transaction, response: xmlResponse(serializeVerifyResponse(result.result), 200) };
+        });
       }
       if (operation.name === "bpSettleRequest") {
-        const result = this.settleRequests.execute(extractBpSettleRequest(operation));
-        return xmlResponse(serializeSettleResponse(result.result), 200);
+        const input = extractBpSettleRequest(operation);
+        return await this.executeTransportAware("bpSettleRequest", input, () => {
+          const result = this.settleRequests.execute(input);
+          return { transaction: result.transaction, response: xmlResponse(serializeSettleResponse(result.result), 200) };
+        });
       }
       if (operation.name === "bpVerifySettleRequest") {
-        const result = this.verifySettleRequests.execute(extractBpVerifySettleRequest(operation));
-        return xmlResponse(serializeVerifySettleResponse(result.result), 200);
+        const input = extractBpVerifySettleRequest(operation);
+        return await this.executeTransportAware("bpVerifySettleRequest", input, () => {
+          const result = this.verifySettleRequests.execute(input);
+          return { transaction: result.transaction, response: xmlResponse(serializeVerifySettleResponse(result.result), 200) };
+        });
       }
       if (operation.name === "bpInquiryRequest") {
         this.inquiryRequests.execute(extractBpInquiryRequest(operation));
@@ -129,6 +151,40 @@ export class LocalSoapService {
       }
       return xmlResponse(serializeSoapFault("Server", "Simulator internal failure."), 500);
     }
+  }
+
+  private async executeTransportAware(
+    operation: TransportFaultOperation,
+    input: Readonly<{ terminalId: bigint; saleOrderId: bigint; saleReferenceId: bigint }>,
+    execute: () => Readonly<{ transaction: import("@/server/transactions").Transaction; response: Response }>,
+  ): Promise<Response> {
+    const transaction = this.repository.getByProtocolCorrelation(input);
+    if (transaction !== undefined && this.transportFaults?.claimPreExecution(transaction, operation) !== undefined) {
+      return transportHttpFailure();
+    }
+
+    const completed = execute();
+    const fault = this.transportFaults?.claimPostExecution(completed.transaction, operation);
+    return this.applyPostExecutionFault(completed.response, fault);
+  }
+
+  private async applyPostExecutionFault(response: Response, fault: TransportFaultAssignment | undefined): Promise<Response> {
+    if (fault === undefined) {
+      return response;
+    }
+    if (fault.profile === "POST_EXECUTION_HTTP_FAILURE") {
+      return transportHttpFailure();
+    }
+    if (fault.profile === "POST_EXECUTION_MALFORMED_SOAP") {
+      return new Response(MALFORMED_SOAP_RESPONSE, {
+        status: 200,
+        headers: { "content-type": "text/xml; charset=utf-8", "cache-control": "no-store" },
+      });
+    }
+    if (fault.profile === "POST_EXECUTION_DELAY") {
+      await this.wait(POST_EXECUTION_DELAY_MILLISECONDS);
+    }
+    return response;
   }
 }
 
@@ -190,6 +246,17 @@ function xmlResponse(body: string, status: number): Response {
     status,
     headers: { "content-type": "text/xml; charset=utf-8", "cache-control": "no-store" },
   });
+}
+
+function transportHttpFailure(): Response {
+  return new Response("Simulator transport failure.", {
+    status: 503,
+    headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+  });
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function safeFaultMessage(code: SoapInputError["code"]): string {

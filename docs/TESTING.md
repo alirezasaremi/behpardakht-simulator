@@ -18,6 +18,8 @@ Goal 8 adds unit/local SOAP contract coverage for table-12 VerifySettle parsing,
 
 Goal 9 adds scenario-engine/local-control contract coverage: NORMAL default/isolation, supported assignment, unknown rejection, clear-without-rollback, no generic state mutation, deterministic repeated unresolved Verify, SOAP Fault without provider result, later normal Verify after clear, forced REVERSED audit event/no fake Reversal event, post-settlement force rejection, source-backed Verify/VerifySettle `48` once state known. Existing Goal 4 dispatcher tests cover callback success/failure. No dashboard/browser flow added.
 
+Goal 10 adds transport-engine/control/SOAP coverage: bounded profiles/operations, isolation, one-shot claims, clear without aggregate mutation, rejected arbitrary values, PRE Verify precedence/no mutation, POST Verify `503` then `43`, POST VerifySettle `503` then `45`, POST Settle committed state with conservative retry fault, fixed malformed fixture, injected 250 ms sleeper, and NORMAL regression. No dashboard/browser controls added.
+
 ```bash
 npm run lint
 npm run typecheck

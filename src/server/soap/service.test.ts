@@ -7,8 +7,9 @@ import {
 import type { RefIdGenerator } from "@/server/protocol";
 import { recordReversalCompleted, recordSaleSucceeded, recordVerifyAttempted } from "@/server/transactions";
 import { ScenarioEngine } from "@/server/scenarios";
+import { TransportFaultEngine } from "@/server/transport";
 import { MAX_SOAP_REQUEST_BYTES } from "./xml";
-import { createLocalSoapService } from "./service";
+import { createLocalSoapService, POST_EXECUTION_DELAY_MILLISECONDS } from "./service";
 
 class FixedRefIdGenerator implements RefIdGenerator {
   private sequence = 0;
@@ -583,5 +584,120 @@ describe("LocalSoapService", () => {
     expect(inquiry.status).toBe(400);
     expect(reversal.status).toBe(400);
     expect(repository.getById(transactionId)).toEqual(known);
+  });
+
+  it("applies post-execution Verify HTTP failure after commit, then retry naturally returns documented 43", async () => {
+    const { repository, clock, identifiers } = createService();
+    const faults = new TransportFaultEngine();
+    const service = createLocalSoapService({ repository, clock, identifiers, refIds: new FixedRefIdGenerator(), transportFaults: faults });
+    await service.handle(request(payXml()));
+    const paid = repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) throw new Error("Pay fixture did not create transaction.");
+    const sold = repository.save(recordSaleSucceeded(paid, {
+      refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999"),
+    }, clock, identifiers));
+    faults.assign(sold, "POST_EXECUTION_HTTP_FAILURE", "bpVerifyRequest");
+
+    const failed = await service.handle(request(verifyXml()));
+    expect(failed.status).toBe(503);
+    expect(await failed.text()).toBe("Simulator transport failure.");
+    expect(repository.getById(sold.id)?.verificationState).toBe("VERIFIED");
+    expect(await (await service.handle(request(verifyXml()))).text()).toContain("<bpVerifyRequestResult>43</bpVerifyRequestResult>");
+  });
+
+  it("pre-execution failure suppresses Verify before semantic scenario or domain mutation, then consumes once", async () => {
+    const { repository, clock, identifiers, scenarios } = createService(true);
+    const faults = new TransportFaultEngine();
+    const service = createLocalSoapService({ repository, clock, identifiers, refIds: new FixedRefIdGenerator(), scenarios, transportFaults: faults });
+    await service.handle(request(payXml()));
+    const paid = repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) throw new Error("Pay fixture did not create transaction.");
+    const sold = repository.save(recordSaleSucceeded(paid, {
+      refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999"),
+    }, clock, identifiers));
+    scenarios.assignScenario(sold, "VERIFY_UNRESOLVED");
+    faults.assign(sold, "PRE_EXECUTION_HTTP_FAILURE", "bpVerifyRequest");
+
+    expect((await service.handle(request(verifyXml()))).status).toBe(503);
+    expect(repository.getById(sold.id)?.verificationState).toBe("NOT_ATTEMPTED");
+    const retried = await service.handle(request(verifyXml()));
+    expect(retried.status).toBe(409);
+    expect(repository.getById(sold.id)?.verificationState).toBe("ATTEMPTED");
+  });
+
+  it("applies malformed response and fixed post-execution delay only after committed operations", async () => {
+    const { repository, clock, identifiers } = createService();
+    const faults = new TransportFaultEngine();
+    const waits: number[] = [];
+    const service = createLocalSoapService({
+      repository, clock, identifiers, refIds: new FixedRefIdGenerator(), transportFaults: faults,
+      wait: async (milliseconds) => { waits.push(milliseconds); },
+    });
+    await service.handle(request(payXml()));
+    const paid = repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) throw new Error("Pay fixture did not create transaction.");
+    const sold = repository.save(recordSaleSucceeded(paid, {
+      refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999"),
+    }, clock, identifiers));
+    faults.assign(sold, "POST_EXECUTION_MALFORMED_SOAP", "bpVerifyRequest");
+    const malformed = await service.handle(request(verifyXml()));
+    expect(malformed.status).toBe(200);
+    expect(await malformed.text()).toBe("<simulator-malformed-soap");
+    expect(repository.getById(sold.id)?.verificationState).toBe("VERIFIED");
+    expect(await (await service.handle(request(verifyXml()))).text()).toContain("<bpVerifyRequestResult>43</bpVerifyRequestResult>");
+
+    faults.assign(repository.getById(sold.id)!, "POST_EXECUTION_DELAY", "bpVerifySettleRequest");
+    const delayed = await service.handle(request(verifySettleXml()));
+    expect(await delayed.text()).toContain("<bpVerifySettleRequestResult>43</bpVerifySettleRequestResult>");
+    expect(waits).toEqual([POST_EXECUTION_DELAY_MILLISECONDS]);
+  });
+
+  it("applies VerifySettle and Settle post-execution HTTP failures without inventing retry result", async () => {
+    const combinedFixture = createService();
+    const combinedFaults = new TransportFaultEngine();
+    const combinedService = createLocalSoapService({ ...combinedFixture, refIds: new FixedRefIdGenerator(), transportFaults: combinedFaults });
+    await combinedService.handle(request(payXml()));
+    const paid = combinedFixture.repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) throw new Error("Pay fixture did not create transaction.");
+    const sold = combinedFixture.repository.save(recordSaleSucceeded(paid, {
+      refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999"),
+    }, combinedFixture.clock, combinedFixture.identifiers));
+    combinedFaults.assign(sold, "POST_EXECUTION_HTTP_FAILURE", "bpVerifySettleRequest");
+    expect((await combinedService.handle(request(verifySettleXml()))).status).toBe(503);
+    expect(combinedFixture.repository.getById(sold.id)).toMatchObject({ verificationState: "VERIFIED", settlementState: "REQUESTED" });
+    expect(await (await combinedService.handle(request(verifySettleXml()))).text()).toContain("<bpVerifySettleRequestResult>45</bpVerifySettleRequestResult>");
+
+    const settleFixture = createService();
+    const settleFaults = new TransportFaultEngine();
+    const settleService = createLocalSoapService({ ...settleFixture, refIds: new FixedRefIdGenerator(), transportFaults: settleFaults });
+    await settleService.handle(request(payXml()));
+    const settlePaid = settleFixture.repository.getByRefId("LocalRef-Aa1");
+    if (settlePaid === undefined) throw new Error("Pay fixture did not create transaction.");
+    const settleSold = settleFixture.repository.save(recordSaleSucceeded(settlePaid, {
+      refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999"),
+    }, settleFixture.clock, settleFixture.identifiers));
+    await settleService.handle(request(verifyXml()));
+    settleFaults.assign(settleSold, "POST_EXECUTION_HTTP_FAILURE", "bpSettleRequest");
+    expect((await settleService.handle(request(settleXml()))).status).toBe(503);
+    expect(settleFixture.repository.getById(settleSold.id)?.settlementState).toBe("REQUESTED");
+    expect((await settleService.handle(request(settleXml()))).status).toBe(400);
+  });
+
+  it("keeps KNOWN_REVERSED protocol truth when post-execution fault suppresses Verify 48", async () => {
+    const { repository, clock, identifiers, scenarios } = createService(true);
+    const faults = new TransportFaultEngine();
+    const service = createLocalSoapService({ repository, clock, identifiers, refIds: new FixedRefIdGenerator(), scenarios, transportFaults: faults });
+    await service.handle(request(payXml()));
+    const paid = repository.getByRefId("LocalRef-Aa1");
+    if (paid === undefined) throw new Error("Pay fixture did not create transaction.");
+    const sold = repository.save(recordSaleSucceeded(paid, {
+      refId: "LocalRef-Aa1", saleOrderId: BigInt("9007199254740995"), saleReferenceId: BigInt("9007199254740999"),
+    }, clock, identifiers));
+    const reversed = scenarios.assignScenario(sold, "KNOWN_REVERSED");
+    faults.assign(reversed, "POST_EXECUTION_HTTP_FAILURE", "bpVerifyRequest");
+
+    expect((await service.handle(request(verifyXml()))).status).toBe(503);
+    expect(repository.getById(reversed.id)).toMatchObject({ reversalState: "REVERSED", lifecycleState: "REVERSED" });
+    expect(await (await service.handle(request(verifyXml()))).text()).toContain("<bpVerifyRequestResult>48</bpVerifyRequestResult>");
   });
 });

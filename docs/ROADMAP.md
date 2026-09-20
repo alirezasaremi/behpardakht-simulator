@@ -9,7 +9,7 @@
 7. Goal 7: `bpInquiryRequest` and `bpReversalRequest`. Complete: table-4/table-5 SOAP adapters, bigint-safe correlation, source audit, and conservative no-provider-result faults where v1.39 lacks operation-specific mappings. Verify `48` remains modeled for known reversed state. No timer; Goal 9 later adds separate scenario reachability.
 8. Goal 8: `bpVerifySettleRequest`. Complete: table-12 SOAP adapter, bigint-safe correlation, atomic combined lifecycle record, source-backed `0`/`43`/`45`/`48` result audit, and no callback/timer/real settlement.
 9. Goal 9: deterministic scenario engine. Complete: in-memory transaction-scoped `NORMAL` / `VERIFY_UNRESOLVED` / `KNOWN_REVERSED`, narrow local control API, no invented Verify code, auditable forced reversal, existing documented `48` integration. Callback failure reuses Goal 4 dispatcher behavior.
-10. Goal 10: transport/protocol fault injection.
+10. Goal 10: deterministic transport-fault simulation. Complete: bounded transaction-scoped one-shot PRE HTTP failure and POST HTTP failure/malformed SOAP/fixed delay, separate local control and state/scenario separation. Connection abort deferred.
 11. Goal 11: developer dashboard.
 12. Goal 12+: specialized documented operations: `bpChargePayRequest`, `bpRefundRequest`, `bpRefundRequestV2`, `bpRefundToPANRequest`, `bpDynamicPayRequest`, and `bpCumulativeDynamicPayRequest`.
 

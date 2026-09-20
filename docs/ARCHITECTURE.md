@@ -64,6 +64,10 @@ SOAP requests use a 64 KiB local body cap. `saxes` is event-driven XML parsing; 
 
 Aggregate does not select scenarios. It represents resulting `REVERSED` state and explicit simulator-origin event. Existing protocol handlers alone translate known `REVERSED` to documented Verify/VerifySettle `48`. No scenario parses XML, serializes SOAP, uses Behpardakht field, injects provider code, changes callback security, persists data, runs timers.
 
+## Goal 10 transport faults (`SIMULATOR_SCENARIO`)
+
+`src/server/transport` is separate process-memory one-shot registry, controlled only by `/local/api/transport-faults`. After safe parsing/input validation/correlation, PRE HTTP failure can return fixed 503 without protocol or scenario execution. Otherwise semantic scenario/protocol handler commits normally, then POST fault can return fixed 503, fixed malformed XML, or fixed 250 ms delayed normal response. Transport diagnostics never enter transaction lifecycle events. Connection abort is deferred: documented Next Route Handler Web APIs expose no safe socket-abort control. See `docs/scenarios/TRANSPORT_FAULTS.md`.
+
 ## Transaction domain (`SIMULATOR_INTERNAL`)
 
 `src/server/transactions` is a small immutable aggregate and no endpoint. It stores protocol-correlating fields using documented casing (`terminalId`, `orderId`, `amount`, `callBackUrl`, `refId`, `saleOrderId`, `saleReferenceId`) plus simulator transaction/event IDs.
@@ -86,4 +90,4 @@ No real PAN, PIN, CVV2, OTP, banking credential, or secret belongs in UI, logs, 
 
 ## Deferred decisions
 
-`SIMULATOR_INTERNAL`: database/persistence, authentication, automatic/retry callback policy, payment-page production behavior remain deferred. Goal 10 transport faults and Goal 11 dashboard remain deferred. Exact provider WSDL/envelope/serialization choices remain unspecified. Goal 3 local compatibility choices are isolated in `src/server/soap`; see `docs/protocol/SOAP_COMPATIBILITY.md`.
+`SIMULATOR_INTERNAL`: database/persistence, authentication, automatic/retry callback policy, payment-page production behavior remain deferred. Goal 11 dashboard and genuine connection-abort behavior remain deferred. Exact provider WSDL/envelope/serialization choices remain unspecified. Goal 3 local compatibility choices are isolated in `src/server/soap`; see `docs/protocol/SOAP_COMPATIBILITY.md`.

@@ -6,6 +6,8 @@ Protocol facts are derived only from supplied Behpardakht Mellat Internet Paymen
 
 Goal 9 adds transaction-scoped deterministic local scenarios. Default `NORMAL` preserves Goals 1-8. Local `/local/api/scenarios` can assign `VERIFY_UNRESOLVED` (local Fault, never invented provider ResCode) or force eligible `KNOWN_REVERSED` state (then existing source-backed Verify/VerifySettle `48` applies). This is `SIMULATOR_SCENARIO`, not Behpardakht protocol. See [scenarios](docs/scenarios/README.md).
 
+Goal 10 adds separate transaction-scoped one-shot transport faults for Verify, Settle, VerifySettle. Fixed PRE HTTP failure prevents execution; fixed POST HTTP failure, malformed SOAP fixture, or 250 ms delay follows committed execution. No arbitrary wire injection; connection abort deferred. See [transport faults](docs/scenarios/TRANSPORT_FAULTS.md).
+
 Callbacks are blocked by default. For a controlled local receiver, start server with an explicit exact-origin allowlist, for example `SIMULATOR_CALLBACK_ALLOWED_ORIGINS=http://127.0.0.1:4010 npm run dev`. Do not allow arbitrary hosts. No real card information belongs in SOAP, browser forms, logs, or callback payloads.
 
 ## Minimal local walkthrough

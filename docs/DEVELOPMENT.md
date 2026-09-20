@@ -27,4 +27,6 @@ Callback delivery is disabled unless `SIMULATOR_CALLBACK_ALLOWED_ORIGINS` contai
 
 For deterministic transaction-local test conditions, inspect `GET /local/api/scenarios`, then assign only enumerated scenario names using `POST /local/api/scenarios` JSON `{"refId":"<Pay RefId>","scenario":"VERIFY_UNRESOLVED"}`. Clear with `DELETE` JSON `{"refId":"<Pay RefId>"}`. This control surface is `SIMULATOR_SCENARIO`, accepts no Behpardakht fields or arbitrary provider codes, disappears on restart. See [scenarios](scenarios/README.md).
 
+For merchant wire-failure testing after local Sale, use `GET`/`POST`/`DELETE /local/api/transport-faults`. Assignment needs exact JSON `{"refId":"<Pay RefId>","profile":"POST_EXECUTION_HTTP_FAILURE","operation":"bpVerifyRequest"}`. It is separate one-shot `SIMULATOR_SCENARIO`, never SOAP input. See [transport faults](scenarios/TRANSPORT_FAULTS.md).
+
 Use no database, SOAP/XML parser, proxy, external service, or extra runtime package until needed by an approved Goal. Goal 3 uses `saxes` solely for safe, event-driven XML parsing behind `src/server/soap`.

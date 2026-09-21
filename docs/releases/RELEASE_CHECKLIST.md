@@ -8,8 +8,8 @@ Do not execute release actions until repository owner approves them.
 - [ ] Version is `0.1.0` in `package.json` and lockfile.
 - [ ] `CHANGELOG.md` and proposed release notes are current.
 - [ ] README, source/security documentation, limitations, and uncertainty ledger are current.
-- [ ] License status reviewed and owner decision recorded.
-- [ ] Official-source PDF redistribution status reviewed; do not add PDF without established rights.
+- [x] MIT License added; owner license decision recorded.
+- [x] Official Mellat PGW v1.39 PDF excluded; do not add, package, or attach it.
 
 ## Quality gate
 

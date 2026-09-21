@@ -2,7 +2,7 @@
 
 Version `0.1.0`. Local-only development and test simulator for selected Behpardakht Mellat payment-gateway flows. Independent project; not affiliated with, endorsed, certified, or operated by Behpardakht Mellat. It is not a real payment gateway and must never process real payments or credentials.
 
-Protocol facts come only from supplied *Mellat PGW Technical Document v1.39* (Azar 1404). This repository does not redistribute that PDF; see [source notes](docs/protocol/SOURCE.md).
+Protocol facts come only from supplied *Mellat PGW Technical Document v1.39* (Azar 1404). This repository does not redistribute that PDF; references identify protocol source used to build and test simulator behavior. See [source notes](docs/protocol/SOURCE.md).
 
 ## Safety and scope
 
@@ -65,6 +65,8 @@ npm run build
 
 Start at [documentation index](docs/README.md): [architecture](docs/ARCHITECTURE.md), [protocol/source](docs/protocol/SOURCE.md), [SOAP compatibility](docs/protocol/SOAP_COMPATIBILITY.md), [uncertainties](docs/protocol/UNCERTAINTIES.md), [scenarios](docs/scenarios/README.md), [transport faults](docs/scenarios/TRANSPORT_FAULTS.md), [dashboard](docs/DASHBOARD.md), [testing](docs/TESTING.md), [development](docs/DEVELOPMENT.md), [release readiness](docs/RELEASE_READINESS.md), and [roadmap](docs/ROADMAP.md).
 
-## Project and license status
+## License
 
-No license has been selected or included. Rights to use, modify, or redistribute repository content require repository-owner decision before public release. Contribution policy is not yet established; follow [development guidance](docs/DEVELOPMENT.md) for local work.
+Behpardakht Simulator source code and repository documentation are licensed under the [MIT License](LICENSE). This project is unofficial and independent; it is neither affiliated with nor endorsed by Behpardakht Mellat. The official Mellat PGW technical documentation is not redistributed here. This MIT License grants no rights to third-party Behpardakht documentation, trademarks, or other third-party materials.
+
+Contribution policy is not yet established; follow [development guidance](docs/DEVELOPMENT.md) for local work.

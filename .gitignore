@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# Official third-party protocol source remains outside this repository.
+Mellat PGW_Tech Doc_ver 1.39_Fa.pdf
+
 # debug
 npm-debug.log*
 yarn-debug.log*

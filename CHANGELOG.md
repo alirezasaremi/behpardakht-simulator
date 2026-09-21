@@ -2,7 +2,7 @@
 
 All notable release changes appear here. This project follows a simple Keep a Changelog-style format.
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-09-21
 
 ### Added
 
@@ -17,4 +17,4 @@ All notable release changes appear here. This project follows a simple Keep a Ch
 
 - No real payment, credential handling, bank action, provider WSDL compatibility, merchant authentication, persistence, timer, Refund, Charge, payout, or deployment behavior.
 - `bpInquiryRequest` and `bpReversalRequest` do not fabricate provider results.
-- Project license and source-PDF redistribution rights require human decisions before public release.
+- The official Mellat PGW technical PDF is not distributed; the MIT License applies only to this repository's own source code and documentation.

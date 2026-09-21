@@ -78,6 +78,8 @@ describe("BpPayRequestHandler", () => {
 
   it("does not turn internal domain failures into provider codes", () => {
     const failingRepository = {
+      getByTerminalIdAndOrderId: () => undefined,
+      getByRefId: () => undefined,
       create: () => {
         throw new TransactionDomainError("INVALID_TRANSACTION_TRANSITION", "forced test failure");
       },
@@ -86,6 +88,19 @@ describe("BpPayRequestHandler", () => {
     expect(() => handler(failingRepository).execute(input)).toThrow(
       expect.objectContaining({ code: "INVALID_TRANSACTION_TRANSITION" }),
     );
+  });
+
+  it("does not persist a pending transaction when local RefId allocation fails", () => {
+    const repository = new InMemoryTransactionRepository();
+    const pay = new BpPayRequestHandler({
+      repository,
+      clock: new ManualClock(new Date("2026-01-01T00:00:00.000Z")),
+      identifiers: new SequenceIdentifierGenerator(),
+      refIds: { nextRefId: () => "" },
+    });
+
+    expect(() => pay.execute(input)).toThrow(expect.objectContaining({ code: "REF_ID_GENERATION_FAILED" }));
+    expect(repository.list()).toEqual([]);
   });
 });
 

@@ -14,6 +14,8 @@ Goal 12 audits every remaining v1.39 capability in [remaining protocol audit](do
 
 Goal 13 re-audits all remaining PARTIAL candidates. It adds safe normal-path `bpCumulativeDynamicPayRequest`: table-10 fields, one to ten account-id/amount/payer-id triples, bigint distribution-total validation, and documented `0,RefId`. Distribution/account/payer input is discarded; no payout, financial settlement, timer, provider nonzero result, or sensitive mobile/card/identity field is simulated. Refund final status remains blocked because the separately referenced refund-inquiry specification is not present locally. See [Goal 13 note](docs/protocol/GOAL_13_CUMULATIVE_DYNAMIC_PAY_NOTE.md).
 
+Goal 14 release-readiness audit closes three core gaps: Pay-family SOAP requests reject sensitive `mobileNo`, `encPan`, and `enc` fields before application handling; RefId allocation cannot leave an unreachable pending request; and dashboard event classifications accurately remain local implementation/scenario history. See [release readiness](docs/RELEASE_READINESS.md).
+
 Callbacks are blocked by default. For a controlled local receiver, start server with an explicit exact-origin allowlist, for example `SIMULATOR_CALLBACK_ALLOWED_ORIGINS=http://127.0.0.1:4010 npm run dev`. Do not allow arbitrary hosts. No real card information belongs in SOAP, browser forms, logs, or callback payloads.
 
 ## Minimal local walkthrough

@@ -49,10 +49,34 @@ export async function extractPaymentOutcome(request: Request): Promise<"SUCCESS"
   throw new StartPayInputError("INVALID_FORM", "Local payment action received an unsupported outcome.");
 }
 
-/** SIMULATOR_INTERNAL simple local form-origin boundary; absent Origin remains usable for controlled test clients. */
+/** SIMULATOR_INTERNAL same-origin local form boundary; absent Origin remains usable for controlled test clients. */
 export function hasTrustedLocalFormOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
-  return origin === null || origin === new URL(request.url).origin;
+  if (origin === null) {
+    return true;
+  }
+
+  const requestOrigin = new URL(request.url).origin;
+  if (origin === requestOrigin) {
+    return true;
+  }
+
+  // Next development hosts can canonicalize Request.url to localhost while a
+  // browser legitimately uses 127.0.0.1. Compare the browser Origin with the
+  // actual inbound Host as well, never with an arbitrary caller-provided URL.
+  const host = request.headers.get("host");
+  if (host === null) {
+    return false;
+  }
+  return origin === originForHost("http", host) || origin === originForHost("https", host);
+}
+
+function originForHost(scheme: "http" | "https", host: string): string | undefined {
+  try {
+    return new URL(`${scheme}://${host}`).origin;
+  } catch {
+    return undefined;
+  }
 }
 
 async function readBoundedRequestBody(request: Request, maximumBytes: number): Promise<string> {

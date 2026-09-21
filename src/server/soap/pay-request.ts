@@ -14,8 +14,13 @@ const REQUIRED_FIELD_NAMES = [
   "callBackUrl",
   "payerId",
 ] as const;
-const OPTIONAL_FIELD_NAMES = ["mobileNo", "encPan", "panHiddenMode", "cartItem", "enc"] as const;
-const ALLOWED_FIELD_NAMES = new Set<string>([...REQUIRED_FIELD_NAMES, ...OPTIONAL_FIELD_NAMES]);
+const SAFE_OPTIONAL_FIELD_NAMES = ["panHiddenMode", "cartItem"] as const;
+const SENSITIVE_OPTIONAL_FIELD_NAMES = new Set(["mobileNo", "encPan", "enc"]);
+const ALLOWED_FIELD_NAMES = new Set<string>([
+  ...REQUIRED_FIELD_NAMES,
+  ...SAFE_OPTIONAL_FIELD_NAMES,
+  ...SENSITIVE_OPTIONAL_FIELD_NAMES,
+]);
 const MAX_LOCAL_STRING_CHARACTERS = 4_096;
 const MAX_CALLBACK_URL_CHARACTERS = 2_048;
 
@@ -25,7 +30,7 @@ export function extractBpPayRequest(operation: ParsedSoapOperation): BpPayReques
     throw new SoapInputError("UNSUPPORTED_OPERATION", "Only bpPayRequest is supported.");
   }
   for (const name of operation.fields.keys()) {
-    if (!ALLOWED_FIELD_NAMES.has(name)) {
+    if (!ALLOWED_FIELD_NAMES.has(name) || SENSITIVE_OPTIONAL_FIELD_NAMES.has(name)) {
       throw new SoapInputError("INVALID_PAY_REQUEST", "bpPayRequest contains an unsupported field.");
     }
   }
@@ -64,11 +69,8 @@ export function extractBpPayRequest(operation: ParsedSoapOperation): BpPayReques
     additionalData,
     callBackUrl,
     payerId,
-    mobileNo: optional(operation, "mobileNo"),
-    encPan: optional(operation, "encPan"),
     panHiddenMode: optional(operation, "panHiddenMode"),
     cartItem: optional(operation, "cartItem"),
-    enc: optional(operation, "enc"),
   };
 }
 
@@ -80,7 +82,7 @@ function required(operation: ParsedSoapOperation, name: (typeof REQUIRED_FIELD_N
   return value;
 }
 
-function optional(operation: ParsedSoapOperation, name: (typeof OPTIONAL_FIELD_NAMES)[number]): string | undefined {
+function optional(operation: ParsedSoapOperation, name: (typeof SAFE_OPTIONAL_FIELD_NAMES)[number]): string | undefined {
   const value = operation.fields.get(name);
   if (value !== undefined) {
     assertMaximumLength(name, value, MAX_LOCAL_STRING_CHARACTERS);

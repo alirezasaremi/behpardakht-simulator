@@ -64,4 +64,17 @@ describe("BpDynamicPayRequestHandler", () => {
 
     expect(handler.execute({ ...input, terminalId: BigInt("9007199254740994") }).result).toBe("0,Dynamic-Ref-2");
   });
+
+  it("does not persist a pending request when local RefId allocation fails", () => {
+    const repository = new InMemoryTransactionRepository();
+    const handler = new BpDynamicPayRequestHandler({
+      repository,
+      clock: new ManualClock(new Date("2026-01-01T00:00:00.000Z")),
+      identifiers: new SequenceIdentifierGenerator(),
+      refIds: { nextRefId: () => "" },
+    });
+
+    expect(() => handler.execute(input)).toThrow(expect.objectContaining({ code: "REF_ID_GENERATION_FAILED" }));
+    expect(repository.list()).toEqual([]);
+  });
 });

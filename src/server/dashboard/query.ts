@@ -202,8 +202,11 @@ function eventFor(event: TransactionEvent): DashboardEventDto {
 
 function classificationFor(event: TransactionEvent): DashboardClassification {
   if (event.type === "SCENARIO_STATE_FORCED") return "SIMULATOR_SCENARIO";
-  if (event.type.startsWith("CALLBACK_DISPATCH")) return "SIMULATOR_INTERNAL";
-  return "PROTOCOL";
+  if (event.type === "SALE_NON_SUCCESS") return "SIMULATOR_SCENARIO";
+  // Aggregate events are local diagnostic history. Their identifiers and
+  // result values can be source-backed without making event persistence a
+  // provider-observable protocol behavior.
+  return "SIMULATOR_INTERNAL";
 }
 
 function metadataFor(event: TransactionEvent): Readonly<Record<string, string | number>> {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractPaymentOutcome, extractStartPayRefId } from "./request";
+import { extractPaymentOutcome, extractStartPayRefId, hasTrustedLocalFormOrigin } from "./request";
 
 function formRequest(body: string): Request {
   return new Request("http://local.test/local/start-pay", {
@@ -24,5 +24,19 @@ describe("local StartPay form boundary", () => {
     ).rejects.toThrow("URL-encoded");
     await expect(extractPaymentOutcome(formRequest("outcome=SUCCESS"))).resolves.toBe("SUCCESS");
     await expect(extractPaymentOutcome(formRequest("outcome=amount-override"))).rejects.toThrow("unsupported outcome");
+  });
+
+  it("accepts actual local Host origins despite runtime localhost canonicalization and rejects cross-origin forms", () => {
+    const localhostRuntimeWithLoopbackBrowser = new Request("http://localhost:3000/local/payment/ref/outcome", {
+      method: "POST",
+      headers: { origin: "http://127.0.0.1:3000", host: "127.0.0.1:3000" },
+    });
+    const crossOrigin = new Request("http://localhost:3000/local/payment/ref/outcome", {
+      method: "POST",
+      headers: { origin: "https://attacker.test", host: "127.0.0.1:3000" },
+    });
+
+    expect(hasTrustedLocalFormOrigin(localhostRuntimeWithLoopbackBrowser)).toBe(true);
+    expect(hasTrustedLocalFormOrigin(crossOrigin)).toBe(false);
   });
 });

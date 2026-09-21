@@ -47,6 +47,12 @@ describe("DashboardQueryService", () => {
       metadata: { terminalId: "9007199254740993", amount: "12345678901234567890" },
     });
     expect(detail?.events.find((event) => event.type === "SALE_SUCCEEDED")).toMatchObject({ metadata: { saleReferenceId: "10" } });
+    expect(detail?.events.find((event) => event.type === "TRANSACTION_CREATED")).toMatchObject({
+      classification: "SIMULATOR_INTERNAL",
+    });
+    expect(detail?.events.find((event) => event.type === "SALE_SUCCEEDED")).toMatchObject({
+      classification: "SIMULATOR_INTERNAL",
+    });
   });
 
   it("keeps all dashboard reads pure: no events, scenario, or one-shot fault change", () => {

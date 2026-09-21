@@ -206,14 +206,17 @@ describe("LocalSoapService", () => {
     expect(await otherTerminal.text()).toContain("<bpPayRequestResult>0,LocalRef-Aa2</bpPayRequestResult>");
   });
 
-  it("rejects malformed XML, unsupported operations, invalid longs, and missing required input as local faults", async () => {
+  it("rejects malformed XML, unsupported operations, invalid longs, missing fields, and sensitive Pay optionals as local faults", async () => {
     const { service } = createService();
     const malformed = await service.handle(request("<soap:Envelope>"));
     const unsupported = await service.handle(request(payXml().replaceAll("bpPayRequest", "bpVerifyRequest")));
     const invalidLong = await service.handle(request(payXml({ orderId: "9007199254740995.5" })));
     const missingRequired = await service.handle(request(payXml().replace(/<pay:payerId>0<\/pay:payerId>/, "")));
+    const sensitiveMobile = await service.handle(request(payXml({ mobileNo: "989121231111" })));
+    const sensitivePan = await service.handle(request(payXml({ encPan: "not-accepted" })));
+    const sensitiveIdentity = await service.handle(request(payXml({ enc: "not-accepted" })));
 
-    for (const response of [malformed, unsupported, invalidLong, missingRequired]) {
+    for (const response of [malformed, unsupported, invalidLong, missingRequired, sensitiveMobile, sensitivePan, sensitiveIdentity]) {
       expect(response.status).toBe(400);
       expect(await response.text()).toContain("<soap:Fault>");
     }

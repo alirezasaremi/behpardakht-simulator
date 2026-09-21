@@ -42,6 +42,14 @@ export class BpDynamicPayRequestHandler {
 
   execute(input: BpDynamicPayRequestInput): BpDynamicPayRequestResult {
     try {
+      if (this.dependencies.repository.getByTerminalIdAndOrderId(input.terminalId, input.orderId) !== undefined) {
+        throw new BpDynamicPayRequestApplicationError(
+          "DUPLICATE_DYNAMIC_PAY_ORDER_ID",
+          "Duplicate Dynamic Pay orderId is not accepted by local simulator.",
+        );
+      }
+      // Keep request creation atomic with local RefId allocation.
+      const refId = this.nextUniqueRefId();
       const created = this.dependencies.repository.create(
         createTransaction(
           {
@@ -55,7 +63,6 @@ export class BpDynamicPayRequestHandler {
           this.dependencies.identifiers,
         ),
       );
-      const refId = this.nextUniqueRefId();
       const transaction = this.dependencies.repository.save(
         assignRefId(created, refId, this.dependencies.clock, this.dependencies.identifiers),
       );

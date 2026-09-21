@@ -64,6 +64,15 @@ export class BpPayRequestHandler {
 
   execute(input: BpPayRequestInput): BpPayRequestResult {
     try {
+      if (this.dependencies.repository.getByTerminalIdAndOrderId(input.terminalId, input.orderId) !== undefined) {
+        throw new BpPayRequestApplicationError(
+          "DUPLICATE_PAY_ORDER_ID",
+          "Duplicate Pay orderId is not accepted by local simulator.",
+        );
+      }
+      // Generate before persistence so an exhausted local generator cannot
+      // leave an unreachable pending transaction in the repository.
+      const refId = this.nextUniqueRefId();
       const created = this.dependencies.repository.create(
         createTransaction(
       {
@@ -77,7 +86,6 @@ export class BpPayRequestHandler {
           this.dependencies.identifiers,
         ),
       );
-      const refId = this.nextUniqueRefId();
       const transaction = this.dependencies.repository.save(
         assignRefId(created, refId, this.dependencies.clock, this.dependencies.identifiers),
       );

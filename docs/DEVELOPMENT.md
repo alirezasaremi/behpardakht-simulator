@@ -1,11 +1,15 @@
 # Development
 
-Node.js and npm are required. This App Router project uses TypeScript strict mode, React, Tailwind CSS, and a shadcn/ui `components.json` foundation. No shadcn component is generated in Goal 1; add UI dependencies only with a concrete component need.
+Node.js and npm are required. Release-preparation verification used Node.js `22.19.0` and npm `10.9.3`; `package.json` has no `engines` field, so this is a tested runtime fact, not a declared support range. This App Router project uses TypeScript strict mode, React, Tailwind CSS, and a shadcn/ui `components.json` foundation. No shadcn component is generated in Goal 1; add UI dependencies only with a concrete component need.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
+
+`package-lock.json` is committed; prefer `npm ci` for reproducible clean installs. `npm install` is appropriate only when deliberately changing dependencies and lockfile.
+
+`npm run typecheck` invokes `next typegen` before `tsc --noEmit`. Next.js generates ignored route-aware declarations, including `next-env.d.ts`; this keeps typechecking reproducible in a clean clone without tracking generated files.
 
 Open `http://localhost:3000`. This local simulator must never receive real card/PIN/CVV2/OTP credentials.
 
@@ -29,7 +33,7 @@ After successful Sale, merchant may instead call `bpVerifySettleRequest` at same
 
 After a successful Pay SOAP result, submit a browser form with its exact case-sensitive RefId to `POST http://localhost:3000/local/start-pay`. The local endpoint accepts URL-encoded `RefId` only, then shows fake developer payment controls. It accepts no amount, order, terminal, callback, or Sale identifier from browser action input.
 
-Callback delivery is disabled unless `SIMULATOR_CALLBACK_ALLOWED_ORIGINS` contains an exact allowed `http:` or `https:` origin. Example for a controlled receiver: `SIMULATOR_CALLBACK_ALLOWED_ORIGINS=http://127.0.0.1:4010 npm run dev`. Explicitly configure localhost or `127.0.0.1`; neither is implicitly trusted. The local dispatcher rejects credentials in URLs, redirects, and destinations outside this allowlist.
+Callback delivery is disabled unless `SIMULATOR_CALLBACK_ALLOWED_ORIGINS` contains an exact allowed `http:` or `https:` origin. No variable is required for simplest local flow. Copy `.env.example` to ignored `.env.local` only when testing callback delivery, then set a controlled local origin; example: `SIMULATOR_CALLBACK_ALLOWED_ORIGINS=http://127.0.0.1:4010`. This optional security-sensitive allowlist is not a credential and must never contain untrusted or production endpoints. Explicitly configure localhost or `127.0.0.1`; neither is implicitly trusted. The local dispatcher rejects credentials in URLs, redirects, and destinations outside this allowlist.
 
 For deterministic transaction-local test conditions, inspect `GET /local/api/scenarios`, then assign only enumerated scenario names using `POST /local/api/scenarios` JSON `{"refId":"<Pay RefId>","scenario":"VERIFY_UNRESOLVED"}`. Clear with `DELETE` JSON `{"refId":"<Pay RefId>"}`. This control surface is `SIMULATOR_SCENARIO`, accepts no Behpardakht fields or arbitrary provider codes, disappears on restart. See [scenarios](scenarios/README.md).
 

@@ -1,27 +1,37 @@
 # Unofficial Behpardakht Payment Gateway Simulator
 
-Local-only development simulator. It never processes real payments. Never enter a real PAN, PIN, CVV2, OTP, or banking credential.
+Version `0.1.0`. Local-only development and test simulator for selected Behpardakht Mellat payment-gateway flows. Independent project; not affiliated with, endorsed, certified, or operated by Behpardakht Mellat. It is not a real payment gateway and must never process real payments or credentials.
 
-Protocol facts are derived only from supplied Behpardakht Mellat Internet Payment Gateway guide v1.39 (Azar 1404). Read [AGENTS.md](AGENTS.md) and [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) before changing code.
+Protocol facts come only from supplied *Mellat PGW Technical Document v1.39* (Azar 1404). This repository does not redistribute that PDF; see [source notes](docs/protocol/SOURCE.md).
 
-Goal 9 adds transaction-scoped deterministic local scenarios. Default `NORMAL` preserves Goals 1-8. Local `/local/api/scenarios` can assign `VERIFY_UNRESOLVED` (local Fault, never invented provider ResCode) or force eligible `KNOWN_REVERSED` state (then existing source-backed Verify/VerifySettle `48` applies). This is `SIMULATOR_SCENARIO`, not Behpardakht protocol. See [scenarios](docs/scenarios/README.md).
+## Safety and scope
 
-Goal 10 adds separate transaction-scoped one-shot transport faults for Verify, Settle, VerifySettle. Fixed PRE HTTP failure prevents execution; fixed POST HTTP failure, malformed SOAP fixture, or 250 ms delay follows committed execution. No arbitrary wire injection; connection abort deferred. See [transport faults](docs/scenarios/TRANSPORT_FAULTS.md).
+Use synthetic merchant values only. Never send, enter, log, store, or commit real PAN, PIN, CVV2, OTP, banking credentials, secrets, or production callback data.
 
-Goal 11 adds [local developer dashboard](docs/DASHBOARD.md) at `/local`. It reads explicit safe diagnostic DTOs from `/local/api/transactions`; it never edits transaction state or protocol records. Detail pages expose only bounded scenario and transport-fault controls already available under `/local/api/`.
+Supported `0.1.0` local paths: `bpPayRequest`, normal-path `bpDynamicPayRequest`, normal-path `bpCumulativeDynamicPayRequest`, fake local StartPay/Sale/callback, `bpVerifyRequest`, `bpSettleRequest`, and `bpVerifySettleRequest`. `bpInquiryRequest` and `bpReversalRequest` validate/correlate their documented request shapes but safely return local Faults where v1.39 supplies no operation-specific result mapping.
 
-Goal 12 audits every remaining v1.39 capability in [remaining protocol audit](docs/protocol/REMAINING_PROTOCOL_AUDIT.md). It adds only safe normal-path `bpDynamicPayRequest`: required table-9 input including `subServiceId`, documented `0,RefId`, then existing local Sale/callback plumbing as `DERIVED` compatibility. It rejects optional mobile/card/identity fields and does not model payout provisioning.
+Not implemented: real payment processing, provider WSDL/wire compatibility, merchant authentication, persistence, callback retries, automatic settlement/reversal timers, payout/provisioning, Refund/Charge flows, and real bank/deposit actions. See [limitations and uncertainties](docs/protocol/UNCERTAINTIES.md).
 
-Goal 13 re-audits all remaining PARTIAL candidates. It adds safe normal-path `bpCumulativeDynamicPayRequest`: table-10 fields, one to ten account-id/amount/payer-id triples, bigint distribution-total validation, and documented `0,RefId`. Distribution/account/payer input is discarded; no payout, financial settlement, timer, provider nonzero result, or sensitive mobile/card/identity field is simulated. Refund final status remains blocked because the separately referenced refund-inquiry specification is not present locally. See [Goal 13 note](docs/protocol/GOAL_13_CUMULATIVE_DYNAMIC_PAY_NOTE.md).
+## Quick Start
 
-Goal 14 release-readiness audit closes three core gaps: Pay-family SOAP requests reject sensitive `mobileNo`, `encPan`, and `enc` fields before application handling; RefId allocation cannot leave an unreachable pending request; and dashboard event classifications accurately remain local implementation/scenario history. See [release readiness](docs/RELEASE_READINESS.md).
+Tested release-preparation runtime: Node.js `22.19.0`, npm `10.9.3`. No `engines` field exists, so these are verification facts, not a declared support range.
 
-Callbacks are blocked by default. For a controlled local receiver, start server with an explicit exact-origin allowlist, for example `SIMULATOR_CALLBACK_ALLOWED_ORIGINS=http://127.0.0.1:4010 npm run dev`. Do not allow arbitrary hosts. No real card information belongs in SOAP, browser forms, logs, or callback payloads.
+```bash
+git clone https://github.com/alirezasaremi/behpardakht-simulator.git
+cd behpardakht-simulator
+npm ci
+cp .env.example .env.local # optional; needed only to deliver callbacks to controlled local receiver
+npm run dev
+```
 
-## Minimal local walkthrough
+Open [http://localhost:3000](http://localhost:3000). Local developer dashboard: [http://localhost:3000/local](http://localhost:3000/local).
 
-1. Send fake `bpPayRequest`, safe normal-path `bpDynamicPayRequest`, or safe normal-path `bpCumulativeDynamicPayRequest` values to `POST /api/soap` as documented in [SOAP compatibility](docs/protocol/SOAP_COMPATIBILITY.md), then extract `RefId` from `0,RefId`.
-2. Submit a browser form to local endpoint only:
+No environment variable is required for simplest local flow. Callbacks are disabled by default. To opt in for one controlled receiver, set exact origins in `.env.local`, for example `SIMULATOR_CALLBACK_ALLOWED_ORIGINS=http://127.0.0.1:4010`. This security-sensitive allowlist must never contain untrusted hosts. See [environment and development notes](docs/DEVELOPMENT.md).
+
+## First merchant flow
+
+1. Start server. Send fake `bpPayRequest` XML to `POST /api/soap`; use [local SOAP example](docs/protocol/SOAP_COMPATIBILITY.md#local-request-example). Extract `RefId` from `0,RefId` response.
+2. POST that exact case-sensitive `RefId` to local StartPay:
 
 ```html
 <form action="http://localhost:3000/local/start-pay" method="post">
@@ -30,18 +40,31 @@ Callbacks are blocked by default. For a controlled local receiver, start server 
 </form>
 ```
 
-3. Choose fake success or cancellation. Simulator records Sale, then POSTs callback fields to original stored `callBackUrl` only when destination is explicitly allowlisted.
-4. Merchant must correlate callback `RefId` and `SaleOrderId` to original Pay request, then call `bpVerifyRequest` with callback `SaleOrderId` / `SaleReferenceId` and matching `terminalId`. Verify request `orderId` is separate, non-unique, and may equal `saleOrderId`.
-5. After Verify `0`, call `bpSettleRequest` with table-3 fields. Settle `orderId` is non-unique, may equal `saleOrderId`, and is not Sale lookup key.
-6. Or call `bpVerifySettleRequest` after successful Sale with table-12 fields. Its `orderId` is non-unique, may equal `saleOrderId`, and is not Sale lookup key. `0` atomically records local verified plus settlement-requested state.
-7. Inquiry/Reversal `orderId` values are non-unique and may equal `saleOrderId`. Neither currently returns an invented provider result; valid calls fault locally until source-backed mappings exist.
-8. For focused local tests, assign a scenario after Pay using opaque RefId at `/local/api/scenarios`; never add scenario fields to SOAP. See [scenario controls](docs/scenarios/README.md).
+3. Choose fake success. Simulator records local Sale and sends documented callback fields only when stored `callBackUrl` exact origin is allowlisted.
+4. At controlled callback endpoint, correlate `RefId` and `SaleOrderId` with original request. Then send `bpVerifyRequest` using matching `terminalId`, callback `SaleOrderId`, and `SaleReferenceId`.
+5. On Verify result `0`, send `bpSettleRequest`; local `0` means settlement request accepted, never real deposit. Or use `bpVerifySettleRequest` after successful Sale for combined local verification/settlement request.
+6. Inspect safe diagnostics at `/local`. See [Verify](docs/protocol/VERIFY.md), [Settle](docs/protocol/SETTLE.md), and [VerifySettle](docs/protocol/VERIFY_SETTLE.md) for exact local boundaries.
+
+## Scenarios and transport faults
+
+Transaction-scoped scenarios (`NORMAL`, `VERIFY_UNRESOLVED`, `KNOWN_REVERSED`) are deterministic local test controls, never provider behavior. One-shot Verify/Settle/VerifySettle transport profiles simulate bounded PRE/POST failures, malformed SOAP, or delay. Configure from dashboard detail page or local control APIs. See [scenarios](docs/scenarios/README.md) and [transport faults](docs/scenarios/TRANSPORT_FAULTS.md).
+
+## Development and validation
 
 ```bash
-npm run dev
 npm run lint
 npm run typecheck
 npm test
 npm run test:e2e
 npm run build
 ```
+
+`test:e2e` needs Chromium; install it separately when absent: `npx playwright install chromium`.
+
+## Documentation
+
+Start at [documentation index](docs/README.md): [architecture](docs/ARCHITECTURE.md), [protocol/source](docs/protocol/SOURCE.md), [SOAP compatibility](docs/protocol/SOAP_COMPATIBILITY.md), [uncertainties](docs/protocol/UNCERTAINTIES.md), [scenarios](docs/scenarios/README.md), [transport faults](docs/scenarios/TRANSPORT_FAULTS.md), [dashboard](docs/DASHBOARD.md), [testing](docs/TESTING.md), [development](docs/DEVELOPMENT.md), [release readiness](docs/RELEASE_READINESS.md), and [roadmap](docs/ROADMAP.md).
+
+## Project and license status
+
+No license has been selected or included. Rights to use, modify, or redistribute repository content require repository-owner decision before public release. Contribution policy is not yet established; follow [development guidance](docs/DEVELOPMENT.md) for local work.

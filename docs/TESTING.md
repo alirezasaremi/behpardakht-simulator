@@ -38,4 +38,6 @@ npm run build
 
 `test:e2e` starts local Next development server at `127.0.0.1:3000` unless one is already running. Browser binaries are installed separately with `npx playwright install chromium` when absent.
 
+For release verification, use isolated tracked files with `npm ci`; do not rely on working-tree `node_modules`. `npm run typecheck` generates Next's ignored route declarations first, so it is valid in a clean clone. Browser validation may still use Playwright's separately provisioned Chromium cache, so record that distinction in release report.
+
 Future tests must name behavior class (`PROTOCOL`, `SIMULATOR_INTERNAL`, or `SIMULATOR_SCENARIO`) and cite source page/uncertainty for protocol claims. Do not write imagined protocol tests.

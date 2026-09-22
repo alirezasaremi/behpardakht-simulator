@@ -12,17 +12,17 @@ export async function POST(request: Request): Promise<Response> {
     return Response.redirect(new URL(`/local/payment/${encodeURIComponent(refId)}`, request.url), 303);
   } catch (error) {
     if (error instanceof PaymentApplicationError && error.code === "UNKNOWN_REF_ID") {
-      return localError(404, "Unknown RefId", "No local Pay transaction exists for submitted RefId.");
+      return localError(404, "RefId ناشناخته است", "تراکنش Pay محلی برای RefId ارسال‌شده وجود ندارد.");
     }
     if (error instanceof StartPayInputError) {
-      return localError(400, "Invalid local StartPay request", error.message);
+      return localError(400, "درخواست StartPay محلی نامعتبر است", "فرم StartPay محلی معتبر نیست.");
     }
-    return localError(500, "Local StartPay error", "Simulator could not process this request.");
+    return localError(500, "خطای StartPay محلی", "شبیه‌ساز نتوانست این درخواست را پردازش کند.");
   }
 }
 
 function localError(status: number, title: string, detail: string): Response {
-  return new Response(`<!doctype html><title>${title}</title><main><h1>${title}</h1><p>${detail}</p></main>`, {
+  return new Response(`<!doctype html><html lang="fa" dir="rtl"><title>${title}</title><main><h1>${title}</h1><p>${detail}</p></main></html>`, {
     status,
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
   });

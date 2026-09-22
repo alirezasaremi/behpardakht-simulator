@@ -48,7 +48,7 @@ async function createSuccessfulSale(
   expect(refId).toBeTruthy();
   const startPay = await page.request.post("/local/start-pay", { form: { RefId: refId ?? "" }, maxRedirects: 0 });
   await page.goto(startPay.headers()["location"] ?? "/");
-  await page.getByRole("button", { name: "Simulate successful payment" }).click();
+  await page.getByRole("button", { name: "شبیه‌سازی پرداخت موفق" }).click();
   const transactionResponse = await page.request.get("/local/api/transactions?limit=100");
   const list = await transactionResponse.json() as { transactions: Array<{ refId?: string; transactionId: string; orderId: string; saleOrderId?: string; saleReferenceId?: string }> };
   const transaction = list.transactions.find((candidate) => candidate.refId === refId);
@@ -72,7 +72,7 @@ async function completeLocalPayment(page: import("@playwright/test").Page, refId
   const startPay = await page.request.post("/local/start-pay", { form: { RefId: refId }, maxRedirects: 0 });
   expect(startPay.status()).toBe(303);
   await page.goto(startPay.headers()["location"] ?? "/");
-  await page.getByRole("button", { name: "Simulate successful payment" }).click();
+  await page.getByRole("button", { name: "شبیه‌سازی پرداخت موفق" }).click();
 }
 
 async function transactionForRefId(page: import("@playwright/test").Page, refId: string) {
@@ -85,16 +85,26 @@ async function transactionForRefId(page: import("@playwright/test").Page, refId:
 
 test("shows local dashboard with local-only notice", async ({ page }) => {
   await page.goto("/local");
-  await expect(page.getByRole("heading", { name: "Behpardakht Simulator" })).toBeVisible();
-  await expect(page.getByText(/Unofficial local developer tool/i)).toBeVisible();
-  await expect(page.getByText("bpCumulativeDynamicPayRequest (safe normal path)")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "شبیه‌ساز Behpardakht" })).toBeVisible();
+  await expect(page.getByText(/ابزار توسعهٔ محلی و غیررسمی/)).toBeVisible();
+  await expect(page.getByText(/bpCumulativeDynamicPayRequest/)).toBeVisible();
+});
+
+test("keeps dashboard RTL without narrow-page overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/local");
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await expect(page.locator("body")).toHaveCSS("font-family", /Estedad/);
+  await expect.poll(() => page.locator("body").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
 });
 
 test("shows simulator identity and credential warning", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading")).toHaveText("Unofficial Behpardakht Payment Gateway Simulator");
-  await expect(page.getByText("No real payment occurs.")).toBeVisible();
-  await expect(page.getByText(/Never enter real card/i)).toBeVisible();
+  await expect(page.getByRole("heading")).toHaveText("شبیه‌ساز غیررسمی درگاه پرداخت Behpardakht");
+  await expect(page.getByText(/هیچ پرداخت واقعی انجام نمی‌شود/)).toBeVisible();
+  await expect(page.getByText(/هرگز شمارهٔ کارت/)).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "fa");
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
 });
 
 test("runs local Pay to StartPay to fake successful outcome without credential inputs", async ({ page }) => {
@@ -120,18 +130,19 @@ test("runs local Pay to StartPay to fake successful outcome without credential i
   expect(location).toBeTruthy();
 
   await page.goto(location ?? "/");
-  await expect(page.getByText("LOCAL SIMULATOR ONLY")).toBeVisible();
-  await expect(page.getByText(/Not Behpardakht. Not Shaparak. Not a real banking page/i)).toBeVisible();
+  await expect(page.getByText("فقط شبیه‌ساز محلی")).toBeVisible();
+  await expect(page.getByText(/این صفحه Behpardakht یا شاپرک نیست/)).toBeVisible();
   await expect(page.locator("input")).toHaveCount(0);
-  await page.getByRole("button", { name: "Simulate successful payment" }).click();
-  await expect(page.getByText("Local payment simulation complete")).toBeVisible();
-  await expect(page.getByText(/Sale state: SUCCEEDED/)).toBeVisible();
-  await expect(page.getByText(/Callback dispatch: not delivered \(DESTINATION_REJECTED\)/)).toBeVisible();
+  await page.getByRole("button", { name: "شبیه‌سازی پرداخت موفق" }).click();
+  await expect(page.getByText("شبیه‌سازی پرداخت محلی کامل شد")).toBeVisible();
+  await expect(page.getByText(/وضعیت Sale: موفق/)).toBeVisible();
+  await expect(page.getByText(/ارسال callback: تحویل نشد \(DESTINATION_REJECTED\)/)).toBeVisible();
 });
 
 test("runs merchant HTTP Pay callback, Verify, Settle, and dashboard lifecycle", async ({ page }) => {
   const callbackCount = callbacks.length;
   const sale = await createSuccessfulSale(page, orderId("010"), "http://127.0.0.1:4011/callback");
+  await expect.poll(() => callbacks.length).toBeGreaterThan(callbackCount);
   const callback = callbacks.at(callbackCount);
 
   expect(callback?.get("RefId")).toBe(sale.refId);
@@ -198,40 +209,41 @@ test("shows a local successful Sale on dashboard detail without sensitive callba
   await page.goto("/local");
   await expect(page.getByRole("link", { name: sale.refId })).toBeVisible();
   await page.getByRole("link", { name: sale.refId }).click();
-  await expect(page.getByRole("heading", { name: "Transaction lifecycle" })).toBeVisible();
-  await expect(page.getByText("Protocol identifiers")).toBeVisible();
-  await expect(page.getByText("Callback diagnostics")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "چرخهٔ تراکنش" })).toBeVisible();
+  await expect(page.getByText("شناسه‌های پروتکل")).toBeVisible();
+  await expect(page.getByText("اطلاعات تشخیصی callback")).toBeVisible();
   await expect(page.getByText("SALE_SUCCEEDED")).toBeVisible();
+  await expect(page.locator("code").filter({ hasText: sale.refId })).toHaveCSS("direction", "ltr");
   await expect(page.locator("body")).not.toContainText("fake-local-password");
 });
 
 test("assigns, clears, then observes VERIFY_UNRESOLVED through real local SOAP", async ({ page }) => {
   const sale = await createSuccessfulSale(page, orderId("102"));
   await page.goto(`/local/transactions/${encodeURIComponent(sale.transaction.transactionId)}`);
-  await page.getByLabel("Scenario").selectOption("VERIFY_UNRESOLVED");
-  await page.getByRole("button", { name: "Assign scenario" }).click();
-  await expect(page.getByText("Scenario control updated.")).toBeVisible();
+  await page.getByLabel("سناریو").selectOption("VERIFY_UNRESOLVED");
+  await page.getByRole("button", { name: "تخصیص سناریو" }).click();
+  await expect(page.getByText("کنترل سناریو به‌روزرسانی شد.")).toBeVisible();
   const unresolved = await page.request.post("/api/soap", { headers: { "content-type": "text/xml" }, data: verifyXml(sale.transaction.saleOrderId!, sale.transaction.saleReferenceId!) });
   expect(unresolved.status()).toBe(409);
-  await page.getByLabel("Scenario").selectOption("NORMAL");
-  await page.getByRole("button", { name: "Clear scenario" }).click();
-  await expect(page.getByText("Scenario control updated.")).toBeVisible();
+  await page.getByLabel("سناریو").selectOption("NORMAL");
+  await page.getByRole("button", { name: "پاک‌کردن سناریو" }).click();
+  await expect(page.getByText("کنترل سناریو به‌روزرسانی شد.")).toBeVisible();
   const verified = await page.request.post("/api/soap", { headers: { "content-type": "text/xml" }, data: verifyXml(sale.transaction.saleOrderId!, sale.transaction.saleReferenceId!) });
   await expect(verified.text()).resolves.toContain("<bpVerifyRequestResult>0</bpVerifyRequestResult>");
-  await page.getByRole("button", { name: "Refresh" }).click();
-  await expect(page.getByText("VERIFIED").first()).toBeVisible();
+  await page.getByRole("button", { name: "تازه‌سازی" }).click();
+  await expect(page.getByText("تأییدشده").first()).toBeVisible();
 });
 
 test("assigns post-execution Verify fault, observes merchant failure, then committed dashboard state", async ({ page }) => {
   const sale = await createSuccessfulSale(page, orderId("103"));
   await page.goto(`/local/transactions/${encodeURIComponent(sale.transaction.transactionId)}`);
-  await page.getByLabel("Profile").selectOption("POST_EXECUTION_HTTP_FAILURE");
-  await page.getByLabel("Target operation").selectOption("bpVerifyRequest");
-  await page.getByRole("button", { name: "Assign one-shot fault" }).click();
-  await expect(page.getByText("One-shot transport control updated.")).toBeVisible();
+  await page.getByLabel("پروفایل").selectOption("POST_EXECUTION_HTTP_FAILURE");
+  await page.getByLabel("عملیات هدف").selectOption("bpVerifyRequest");
+  await page.getByRole("button", { name: "تخصیص خطای یک‌بارمصرف" }).click();
+  await expect(page.getByText("کنترل ارتباطی یک‌بارمصرف به‌روزرسانی شد.")).toBeVisible();
   const failed = await page.request.post("/api/soap", { headers: { "content-type": "text/xml" }, data: verifyXml(sale.transaction.saleOrderId!, sale.transaction.saleReferenceId!) });
   expect(failed.status()).toBe(503);
-  await page.getByRole("button", { name: "Refresh" }).click();
-  await expect(page.getByText("VERIFIED").first()).toBeVisible();
-  await expect(page.getByText("None pending")).toBeVisible();
+  await page.getByRole("button", { name: "تازه‌سازی" }).click();
+  await expect(page.getByText("تأییدشده").first()).toBeVisible();
+  await expect(page.getByText("موردی در انتظار نیست")).toBeVisible();
 });

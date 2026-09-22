@@ -1,5 +1,7 @@
 # Unofficial Behpardakht Payment Gateway Simulator
 
+[English](README.md) | [فارسی](README.fa.md)
+
 Version `0.1.0`. Local-only development and test simulator for selected Behpardakht Mellat payment-gateway flows. Independent project; not affiliated with, endorsed, certified, or operated by Behpardakht Mellat. It is not a real payment gateway and must never process real payments or credentials.
 
 Protocol facts come only from supplied *Mellat PGW Technical Document v1.39* (Azar 1404). This repository does not redistribute that PDF; references identify protocol source used to build and test simulator behavior. See [source notes](docs/protocol/SOURCE.md).

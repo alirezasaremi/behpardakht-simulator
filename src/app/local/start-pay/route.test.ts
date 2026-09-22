@@ -82,6 +82,6 @@ describe("local StartPay contract", () => {
       }),
     );
     expect(response.status).toBe(404);
-    expect(await response.text()).toContain("Unknown RefId");
+    expect(await response.text()).toContain("RefId ناشناخته است");
   });
 });

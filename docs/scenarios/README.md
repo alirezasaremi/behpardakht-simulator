@@ -16,7 +16,7 @@ Assignments transaction-scoped, process memory only. Process restart loses trans
 
 `KNOWN_REVERSED` local semantic force action, not `bpReversalRequest`. It accepts only successful-Sale transactions with unresolved verification, no settlement request, no prior reversal; these are `SIMULATOR_SCENARIO` safety constraints. It atomically records `REVERSED` plus `SCENARIO_STATE_FORCED { scenario: "KNOWN_REVERSED" }`. Never fake Reversal SOAP event. Once state exists, existing `PROTOCOL` handlers return documented `48` for Verify and VerifySettle. Clear configuration never restores state/history.
 
-No callback-delivery scenario added. `NORMAL` leaves existing Goal 4 dispatcher behavior unchanged: explicitly allowlisted controlled 2xx receiver records delivery success; rejected, timeout, transport, non-2xx receiver records failure. Both stay separate from successful Sale and retain all SSRF protections.
+No callback-delivery scenario added. `NORMAL` leaves existing Goal 4 dispatcher behavior unchanged: each accepted local payment action attempts one synchronous callback delivery; duplicate payment actions reject, and delayed or duplicate callbacks cannot be injected. An explicitly allowlisted controlled 2xx receiver records delivery success; rejected, timeout, transport, non-2xx receiver records failure. Both stay separate from successful Sale and retain all SSRF protections.
 
 Goal 10 uses distinct `/local/api/transport-faults` registry, not scenario names or SOAP fields. It provides one-shot merchant-to-gateway observation controls; PRE prevents scenario/protocol execution, POST follows normal execution/commit. See [transport faults](TRANSPORT_FAULTS.md).
 

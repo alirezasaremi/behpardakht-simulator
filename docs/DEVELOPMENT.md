@@ -15,7 +15,7 @@ Open `http://localhost:3000`. This local simulator must never receive real card/
 
 Open `http://localhost:3000/local` for local developer dashboard. It manually refreshes bounded process-memory diagnostics from safe read-only DTOs. Detail pages can only assign/clear existing semantic scenarios and one-shot transport faults; they are not transaction editors. See [dashboard](DASHBOARD.md).
 
-Before a change, inspect existing code and `AGENTS.md`. Derive protocol only from `docs/protocol/SOURCE.md` and linked v1.39 facts. Mark non-source behavior `SIMULATOR_INTERNAL` or `SIMULATOR_SCENARIO`; add unknowns to `docs/protocol/UNCERTAINTIES.md`.
+Before a change, inspect existing code and `AGENTS.md`. Derive protocol only from a supplied v1.39 PDF, using `docs/protocol/SOURCE.md` as a page-reference index rather than protocol authority. Never add private client/project data or an unrelated local source path. Mark non-source behavior `SIMULATOR_INTERNAL` or `SIMULATOR_SCENARIO`; add unknowns to `docs/protocol/UNCERTAINTIES.md`.
 
 Local SOAP service is `POST http://localhost:3000/api/soap`. It accepts only [SOAP_COMPATIBILITY.md](protocol/SOAP_COMPATIBILITY.md), not a production Behpardakht endpoint. Use fake local merchant values only.
 

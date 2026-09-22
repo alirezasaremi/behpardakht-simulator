@@ -14,7 +14,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Build an unofficial, local-only Behpardakht Mellat payment-gateway simulator for development and tests. No real payment ever occurs.
 
+This is a standalone public project. Keep all repository content reusable and generic. Never add private client/project names, domains, namespaces, repository URLs, merchant identities, customer data, internal URLs, terminal credentials, organization-specific information, or paths to unrelated workspaces. Use generic examples such as `merchant-app`, `merchant.example.test`, synthetic merchant IDs, dummy credentials, and generic callback URLs.
+
 **Only** supplied *Mellat PGW Technical Document v1.39, Azar 1404* may establish Behpardakht protocol behavior. Client applications, prior integrations, tutorials, packages, generic SOAP practice, and assumptions are never protocol authority. Never invent undocumented Behpardakht behavior; record it in `docs/protocol/UNCERTAINTIES.md`.
+
+The official PDF is not redistributed by this public repository. Do not record a private or unrelated local filesystem path for it. Before changing protocol behavior, obtain the supplied v1.39 copy through approved project context and verify relevant printed pages directly.
 
 Classify behavior in code and docs:
 

@@ -38,6 +38,8 @@ npm run build
 
 `test:e2e` starts local Next development server at `127.0.0.1:3000` unless one is already running. Browser binaries are installed separately with `npx playwright install chromium` when absent.
 
+For an isolated browser run while another local server uses port 3000, start this simulator on another loopback port with its callback allowlist, then set `PLAYWRIGHT_BASE_URL` to that exact origin before `npm run test:e2e`. This is test-runner configuration only; it does not change simulator endpoints.
+
 For release verification, use isolated tracked files with `npm ci`; do not rely on working-tree `node_modules`. `npm run typecheck` generates Next's ignored route declarations first, so it is valid in a clean clone. Browser validation may still use Playwright's separately provisioned Chromium cache, so record that distinction in release report.
 
-Future tests must name behavior class (`PROTOCOL`, `SIMULATOR_INTERNAL`, or `SIMULATOR_SCENARIO`) and cite source page/uncertainty for protocol claims. Do not write imagined protocol tests.
+Future tests must name behavior class (`PROTOCOL`, `SIMULATOR_INTERNAL`, or `SIMULATOR_SCENARIO`) and cite source page/uncertainty for protocol claims. Do not write imagined protocol tests. Public-repository fixtures must use only synthetic identifiers, dummy credentials, and generic callback destinations. Never use a client domain, merchant identity, terminal credential, customer value, or internal URL in tests or documentation.

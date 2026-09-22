@@ -4,7 +4,7 @@
 
 Version `0.1.0`. Local-only development and test simulator for selected Behpardakht Mellat payment-gateway flows. Independent project; not affiliated with, endorsed, certified, or operated by Behpardakht Mellat. It is not a real payment gateway and must never process real payments or credentials.
 
-Protocol facts come only from supplied *Mellat PGW Technical Document v1.39* (Azar 1404). This repository does not redistribute that PDF; references identify protocol source used to build and test simulator behavior. See [source notes](docs/protocol/SOURCE.md).
+Protocol facts come only from supplied *Mellat PGW Technical Document v1.39* (Azar 1404). This public repository does not redistribute that PDF or identify unrelated local source locations; references identify protocol source used to build and test simulator behavior. See [source notes](docs/protocol/SOURCE.md).
 
 ## Safety and scope
 
@@ -19,7 +19,7 @@ Not implemented: real payment processing, provider WSDL/wire compatibility, merc
 Tested release-preparation runtime: Node.js `22.19.0`, npm `10.9.3`. No `engines` field exists, so these are verification facts, not a declared support range.
 
 ```bash
-git clone https://github.com/alirezasaremi/behpardakht-simulator.git
+git clone <repository-url>
 cd behpardakht-simulator
 npm ci
 cp .env.example .env.local # optional; needed only to deliver callbacks to controlled local receiver

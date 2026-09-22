@@ -4,6 +4,8 @@
 
 `PROTOCOL` facts in this repository come exclusively from supplied PDF: *Mellat PGW Technical Document v1.39* / *User Guide: Internet Payment Gateway Functions and Methods*, Behpardakht Mellat, Azar 1404, 38 pages. It identifies version 1.39 and date on its page headers.
 
+The PDF is reviewed through approved project context but is not tracked or redistributed here. Do not add a private, unrelated, or machine-specific filesystem location for it. Before a protocol change, directly verify relevant printed pages against a supplied v1.39 copy; repository summaries remain navigation aids, never replacement authority.
+
 Source page references below use printed PDF page numbers where visible (for example, PDF page 14 contains source content page 13). The document states SOAP/XML over HTTP or HTTPS at a high level, but source support must be assessed per wire-level claim.
 
 ## Transport and service locations (`PROTOCOL`)

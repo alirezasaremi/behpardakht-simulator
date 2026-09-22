@@ -4,7 +4,7 @@
 
 Goal 14 audits only currently supported local simulator core. It does not add Refund, Charge, SettleTime, payment credentials, provider WSDL, persistence, or deployment work.
 
-Only authority for Behpardakht behavior is supplied local `Mellat PGW_Tech Doc_ver 1.39_Fa.pdf` (Azar 1404), stored outside repository at `../_Doc/Mellat PGW_Tech Doc_ver 1.39_Fa.pdf`. Page references below use PDF printed page numbers. Existing protocol notes are navigation aids, not authority.
+Only authority for Behpardakht behavior is supplied *Mellat PGW Technical Document v1.39* (Azar 1404). It is reviewed through approved project context and is not tracked or redistributed by this public repository. Page references below use PDF printed page numbers. Existing protocol notes are navigation aids, not authority.
 
 Classification:
 

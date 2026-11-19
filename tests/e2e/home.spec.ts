@@ -85,7 +85,7 @@ async function transactionForRefId(page: import("@playwright/test").Page, refId:
 
 test("shows local dashboard with local-only notice", async ({ page }) => {
   await page.goto("/local");
-  await expect(page.getByRole("heading", { name: "شبیه‌ساز Behpardakht" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "شبیه‌ساز ‌به‌پرداخت ملت" })).toBeVisible();
   await expect(page.getByText(/ابزار توسعهٔ محلی و غیررسمی/)).toBeVisible();
   await expect(page.getByText(/bpCumulativeDynamicPayRequest/)).toBeVisible();
 });
@@ -230,7 +230,7 @@ test("assigns, clears, then observes VERIFY_UNRESOLVED through real local SOAP",
   await expect(page.getByText("کنترل سناریو به‌روزرسانی شد.")).toBeVisible();
   const verified = await page.request.post("/api/soap", { headers: { "content-type": "text/xml" }, data: verifyXml(sale.transaction.saleOrderId!, sale.transaction.saleReferenceId!) });
   await expect(verified.text()).resolves.toContain("<bpVerifyRequestResult>0</bpVerifyRequestResult>");
-  await page.getByRole("button", { name: "تازه‌سازی" }).click();
+  await page.getByRole("button", { name: "بازخوانی" }).click();
   await expect(page.getByText("تأییدشده").first()).toBeVisible();
 });
 
@@ -243,7 +243,7 @@ test("assigns post-execution Verify fault, observes merchant failure, then commi
   await expect(page.getByText("کنترل ارتباطی یک‌بارمصرف به‌روزرسانی شد.")).toBeVisible();
   const failed = await page.request.post("/api/soap", { headers: { "content-type": "text/xml" }, data: verifyXml(sale.transaction.saleOrderId!, sale.transaction.saleReferenceId!) });
   expect(failed.status()).toBe(503);
-  await page.getByRole("button", { name: "تازه‌سازی" }).click();
+  await page.getByRole("button", { name: "بازخوانی" }).click();
   await expect(page.getByText("تأییدشده").first()).toBeVisible();
   await expect(page.getByText("موردی در انتظار نیست")).toBeVisible();
 });

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "شبیه‌ساز Behpardakht | درگاه پرداخت محلی",
+  title: "شبیه‌ساز به‌پرداخت ملت | درگاه پرداخت محلی",
   description: "شبیه‌ساز محلی برای توسعه. هیچ پرداخت واقعی انجام نمی‌شود.",
 };
 

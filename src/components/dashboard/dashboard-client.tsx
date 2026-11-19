@@ -72,14 +72,14 @@ export function DashboardHome() {
       <InfoCard title="خطاهای ارتباطی یک‌بارمصرف" classification="SIMULATOR_SCENARIO"><p>خطاهای پیش و پس از اجرا برای Verify، Settle و VerifySettle. این‌ها آزمون مشاهدهٔ پذیرنده‌اند، نه وضعیت پروتکل.</p></InfoCard>
     </section>
     <section aria-labelledby="transactions-heading" className="panel">
-      <div className="section-heading"><div><p className="eyebrow">SIMULATOR_INTERNAL</p><h2 id="transactions-heading">تراکنش‌ها</h2><p>تراکنش‌های اخیرِ فرایند محلی. پس از فعالیت SOAP برنامهٔ پذیرنده، تازه‌سازی کنید.</p></div></div>
+      <div className="section-heading"><div><p className="eyebrow">SIMULATOR_INTERNAL</p><h2 id="transactions-heading">تراکنش‌ها</h2><p>تراکنش‌های اخیرِ فرایند محلی. پس از فعالیت SOAP برنامهٔ پذیرنده، بازخوانی کنید.</p></div></div>
       <div className="filter-bar">
         <label>جست‌وجوی شناسه‌ها<input dir="ltr" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="RefId، orderId، Sale ID" /></label>
         <Filter label="وضعیت Sale" value={saleFilter} values={["ALL", "PENDING", "SUCCEEDED", "NON_SUCCESS"]} onChange={setSaleFilter} />
         <Filter label="وضعیت Verify" value={verificationFilter} values={["ALL", "NOT_ATTEMPTED", "ATTEMPTED", "VERIFIED"]} onChange={setVerificationFilter} />
         <Filter label="سناریو" value={scenarioFilter} values={["ALL", ...scenarios]} onChange={setScenarioFilter} />
       </div>
-      {error ? <ErrorMessage message={error} /> : loading && data === undefined ? <p className="empty-state">اطلاعات محلی در حال بارگیری است…</p> : transactions.length === 0 ? <p className="empty-state">تراکنش محلی منطبق پیدا نشد. یک درخواست Pay محلی ساختگی بفرستید، سپس تازه‌سازی کنید.</p> : <TransactionTable transactions={transactions} />}
+      {error ? <ErrorMessage message={error} /> : loading && data === undefined ? <p className="empty-state">اطلاعات محلی در حال بارگیری است…</p> : transactions.length === 0 ? <p className="empty-state">تراکنش محلی منطبق پیدا نشد. یک درخواست Pay محلی ساختگی بفرستید، سپس بازخوانی کنید.</p> : <TransactionTable transactions={transactions} />}
     </section>
     <ClassificationLegend />
   </main>;
@@ -126,7 +126,7 @@ export function TransactionDetail({ transactionId }: { transactionId: string }) 
 }
 
 function DashboardHeader({ onRefresh, loading }: { onRefresh: () => void; loading: boolean }) {
-  return <header className="dashboard-header"><div><p className="eyebrow">غیررسمی / محلی / ابزار توسعه</p><h1>شبیه‌ساز Behpardakht</h1><p>اطلاعات تشخیصی امن تراکنش و کنترل‌های قطعی آزمون.</p></div><button className="button secondary" type="button" onClick={onRefresh} disabled={loading}>{loading ? "در حال تازه‌سازی…" : "تازه‌سازی"}</button></header>;
+  return <header className="dashboard-header"><div><p className="eyebrow">غیررسمی / محلی / ابزار توسعه</p><h1>شبیه‌ساز به‌پرداخت ملت</h1><p>اطلاعات تشخیصی امن تراکنش و کنترل‌های قطعی آزمون.</p></div><button className="button secondary" type="button" onClick={onRefresh} disabled={loading}>{loading ? "در حال بازخوانی…" : "بازخوانی"}</button></header>;
 }
 
 function metricCards(summary?: Summary): [string, number][] {
